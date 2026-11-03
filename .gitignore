@@ -1,6 +1,10 @@
 smoke-test.cjs
 dev-smoke.cjs
 smoke.png
+live-test.cjs
+alpha02-qa.cjs
+alpha02-*.png
+patch-alpha*.py
 node_modules/
 *.log
 .DS_Store

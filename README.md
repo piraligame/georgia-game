@@ -1,36 +1,52 @@
-# GEORGIA — სამეფოს დაცვა
+# GEORGIA — სამეფოს დაცვა 🇬🇪
 
-სრულიად ახალი, დამოუკიდებელი თამაში. **PIRALI რეპოზიტორია არ იცვლება.**
+**Alpha 0.2** • Independent, playable low-poly 3D survival and fortress-building game.
 
-## Playable Alpha 0.1
+🎮 [Play online](https://piraligame.github.io/georgia-game/) • 🛠️ [Developer version](https://piraligame.github.io/georgia-game/developer.html)
 
-- იზომეტრიული 3D გარემო (Three.js)
-- ერთი გმირი, აქტიური მოძრაობა და ავტომატური სროლა
-- მტრების ტალღები და თანდათან მზარდი სირთულე
-- მონეტების შეგროვება
-- კედლებისა და კოშკების აშენება
-- გმირის გაძლიერება და სიცოცხლის აღდგენა
-- კომპიუტერისა და მობილურის მართვა
+GEORGIA is a **separate game project**. It does not modify or depend on PIRALI.
 
-## Controls
+## What's new in Alpha 0.2
 
-**კომპიუტერი:** WASD / ისრები — მოძრაობა, Space — Dash, Q — კედელი, E — კოშკი, R — გაძლიერება.
+- Georgian flag on the start screen and a five-cross Georgian flag flying above the fortress
+- The hero now carries a **bow, quiver, and arrows**; the hero and archery towers shoot visible 3D arrows
+- **18 predefined building sites** around the castle: 14 wall sections and 4 archer towers
+- Approach a glowing site (or tap it) and press the corresponding construction button
+- Each finished wall forms part of the castle defense; enemy attacks can destroy structures, freeing the site for rebuilding
+- Enemies pursue the hero when nearby, otherwise they assault the fortress
+- New **fortress durability** meter, castle defeat condition and wave-survival bonuses
+- More effective automatic aiming, archer towers, visible construction effects
+- Improved touch UI with build controls moved higher, away from the joystick
+- Both Player and Developer versions updated; corrected Georgian text encoding
 
-**ტელეფონი:** ჯოისტიკი, მშენებლობის ღილაკები, Dash და ჯანმრთელობა.
+## Gameplay
 
-## გაშვება
+One playable hero defends the Georgian fortress from waves of enemies. Fight with a bow, collect dropped coins, place defenses on marked locations, improve the hero, and survive increasingly difficult waves.
 
-ეს არის ბრაუზერული სათამაშო პროტოტიპი GitHub Pages-ისთვის (Unity Android პროექტი მოგვიანებით ცალკე დაიმატება).
+**Controls (PC):** WASD / arrows — movement; **Q** — wall; **E** — archer tower; **R** — upgrade; **Space** — dash.
 
-გაუშვი ლოკალური სერვერიდან: `python -m http.server 8080` ან `npx serve .` და გახსენი `http://localhost:8080`.
+**Controls (Android/mobile):** left joystick, building buttons, dash and healing. Touch a glowing building marker to select the desired spot.
 
-Three.js იტვირთება CDN-დან, ამიტომ პირველ ჩატვირთვაზე ინტერნეტია საჭირო.
+**Developer page:** +1000 coins, immortality, next wave, full health.
+
+## Local preview
+
+Start a server in this folder:
+
+```sh
+python -m http.server 8765
+```
+
+Open `http://localhost:8765` (Player) or `http://localhost:8765/developer.html` (Developer).
+
+Three.js loads via CDN; an internet connection is required for the first page load. The project is a browser prototype, **not** a native Unity/Android package yet.
 
 ## Roadmap
 
-1. მოთამაშის უფრო დახვეწილი 3D მოდელი და ანიმაციები.
-2. სოფლის მოსახლეობა, რესურსების მოპოვება და საბაზო ეკონომიკა.
-3. გალავნის მშენებლობის უფრო კომფორტული პოზიციონირება.
-4. უფრო მრავალფეროვანი მტრები და ტალღების ბოსები.
-5. დამოუკიდებელი Unity 3D Android პროექტი.
+- More detailed bow and combat animations
+- Villagers and resource-gathering
+- Defense upgrade trees and a gate
+- More enemy types, bosses, and long-term progression
+- Separate Unity 3D Android build
 
+© GEORGIA prototype.
