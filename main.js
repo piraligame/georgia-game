@@ -1,7 +1,19 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js';
+import { createGameAudio } from './audio.js?v=0.4';
 
 // GEORGIA — playable 3D alpha. A separate project from PIRALI.
 const $ = id => document.getElementById(id);
+const audio=createGameAudio();
+function renderAudioControls(){
+  const m=audio.state();
+  $('musicToggle').textContent=m.music?'🎵 მუსიკა':'🎵 გამორთ.';
+  $('sfxToggle').textContent=m.sfx?'🔊 ეფექტები':'🔇 ეფექტები';
+  $('musicToggle').setAttribute('aria-pressed',String(m.music));
+  $('sfxToggle').setAttribute('aria-pressed',String(m.sfx));
+  $('musicToggle').classList.toggle('audio-muted',!m.music);
+  $('sfxToggle').classList.toggle('audio-muted',!m.sfx);
+}
+
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x8dc8bf);
 scene.fog = new THREE.FogExp2(0x9ac9b7, .009);
@@ -96,6 +108,7 @@ if(hero){
   cube(rightArm,.24,.68,.25,mat(color),-.04,-.28,.08);
   sphere(rightArm,.17,materials.skin,-.04,-.60,.16);
   const bow=new THREE.Group();leftArm.add(bow);bow.position.set(.2,-.42,.42);
+  bow.scale.set(1.23,1.13,1.16);
   const wood=mat(0x8b5129,.66),lacquer=mat(0xc89c57,.46),cord=mat(0xece0a9,.75);
   const outline=new THREE.CatmullRomCurve3([
     new THREE.Vector3(.04,-.69,0),new THREE.Vector3(.28,-.45,0),
@@ -103,10 +116,11 @@ if(hero){
     new THREE.Vector3(.35,.21,0),new THREE.Vector3(.28,.45,0),
     new THREE.Vector3(.04,.69,0)
   ]);
-  mesh(bow,new THREE.TubeGeometry(outline,32,.055,8,false),wood);
+  mesh(bow,new THREE.TubeGeometry(outline,32,.065,8,false),wood);
+  for(const h of [-.47,.47])cube(bow,.09,.19,.10,lacquer,.24,h,0);
   cube(bow,.15,.28,.17,materials.dark,.34,0,0);
   for(const yy of [-.66,.66]){sphere(bow,.11,lacquer,.05,yy,0);}
-  const stringA=cyl(bow,.014,.014,.66,cord),stringB=cyl(bow,.014,.014,.66,cord);
+  const stringA=cyl(bow,.025,.025,.66,cord),stringB=cyl(bow,.025,.025,.66,cord);
   const heldArrow=new THREE.Group();bow.add(heldArrow);
   const shaft=cyl(heldArrow,.026,.026,1.18,materials.wood,0,0,0);shaft.rotation.x=Math.PI/2;
   const head=cone(heldArrow,.09,.19,materials.wall,0,0,.65);head.rotation.x=Math.PI/2;
@@ -114,7 +128,7 @@ if(hero){
   const quiver=cyl(body,.2,.24,.75,materials.wood,-.42,1.15,-.42);quiver.rotation.z=-.22;
   for(const xx of [-.53,-.40,-.28])cyl(body,.021,.021,.65,cord,xx,1.66,-.44);
   const ornament=cube(body,.15,.45,.07,materials.gold,-.31,1.11,-.62);ornament.rotation.z=-.16;
-  body.userData.rig={bow,leftArm,rightArm,stringA,stringB,heldArrow,draw:0,shotFlash:0,phase:rand(0,6),nock:new THREE.Vector3()};
+  body.userData.rig={bow,leftArm,rightArm,stringA,stringB,heldArrow,draw:0,shotFlash:0,phase:rand(0,6),nock:new THREE.Vector3(),fired:0};
 }else{const spear=cyl(body,.06,.06,1.5,materials.wood,.52,.98,.23);spear.rotation.z=-.12;cone(body,.14,.35,materials.wall,.62,1.85,.23)}
 return {group:g,body};}
 
@@ -126,20 +140,29 @@ function alignRod(obj,a,b){
 function animateArcher(body,time,hasTarget,dt){
   const rig=body.userData.rig;if(!rig)return;
   const cooldown=body===hero.body?state.attackCd:(body.userData.attackCd??.5);
-  const goal=hasTarget?Math.max(0,1-Math.max(0,cooldown)/.47):.07;
-  rig.draw=THREE.MathUtils.lerp(rig.draw,goal,Math.min(1,dt*(hasTarget?10:5)));
-  const pull=rig.draw*.58,move=Math.sin(time*.0022+rig.phase);
-  rig.leftArm.rotation.z=-.12+move*.035;
-  rig.leftArm.rotation.x=-.16+Math.sin(time*.003+rig.phase)*.045;
-  rig.rightArm.rotation.x=-.62+rig.draw*.55;
-  rig.rightArm.rotation.z=-.33-rig.draw*.10;
-  rig.bow.rotation.z=Math.sin(time*.003+rig.phase)*.032-rig.shotFlash*.11;
-  rig.heldArrow.position.set(.05,.01,-.18-pull);
-  rig.heldArrow.visible=hasTarget;
-  alignRod(rig.stringA,new THREE.Vector3(.04,.69,0),new THREE.Vector3(-.02,0,-pull));
-  alignRod(rig.stringB,new THREE.Vector3(-.02,0,-pull),new THREE.Vector3(.04,-.69,0));
-  rig.shotFlash=Math.max(0,rig.shotFlash-dt*7);
+  const ready=body===hero.body?.39:.58;
+  // Pull the string back while reloading; snap the nock forward upon release.
+  const goal=hasTarget?THREE.MathUtils.clamp(1-Math.max(0,cooldown)/ready,0,1):.03;
+  rig.draw=THREE.MathUtils.lerp(rig.draw,goal,Math.min(1,dt*(hasTarget?13:4.5)));
+  const pull=rig.draw*.67,move=Math.sin(time*.002+rig.phase);
+  const recoil=rig.shotFlash;
+  rig.leftArm.rotation.z=-.23+move*.04-recoil*.095;
+  rig.leftArm.rotation.x=-.42+Math.sin(time*.003+rig.phase)*.035;
+  rig.rightArm.rotation.x=-.40-rig.draw*.90+recoil*.22;
+  rig.rightArm.rotation.y=-.05-rig.draw*.30;
+  rig.rightArm.rotation.z=-.23-rig.draw*.21;
+  rig.bow.rotation.z=Math.sin(time*.0027+rig.phase)*.038-recoil*.17;
+  rig.bow.rotation.y=Math.sin(time*.0017+rig.phase)*.045;
+  rig.heldArrow.position.set(.01,.01,-.15-pull);
+  rig.heldArrow.visible=hasTarget&&recoil<.70;
+  // Natural release vibration after the arrow leaves the string.
+  const vibrate=Math.sin(recoil*31)*recoil*.08;
+  const nock=new THREE.Vector3(-.02,0,-pull+vibrate);
+  alignRod(rig.stringA,new THREE.Vector3(.04,.69,0),nock);
+  alignRod(rig.stringB,nock,new THREE.Vector3(.04,-.69,0));
+  rig.shotFlash=Math.max(0,recoil-dt*6.2);
 }
+
 const hero=person(0x286b6a,true);hero.group.position.set(2,0,6.5);scene.add(hero.group);
 const heroShadow=mesh(hero.group,new THREE.CircleGeometry(.65,20),new THREE.MeshBasicMaterial({color:0x071918,transparent:true,opacity:.22,depthWrite:false}),0,.02,0);heroShadow.rotation.x=-Math.PI/2;heroShadow.castShadow=false;
 const heroAura=mesh(hero.group,new THREE.RingGeometry(.69,.87,32),new THREE.MeshBasicMaterial({color:0xffdb8a,transparent:true,opacity:.62,depthWrite:false,depthTest:false,side:THREE.DoubleSide}),0,.047,0);
@@ -186,7 +209,7 @@ function upgradeStructure(){
  b.maxHp+=b.kind==='wall'?155:110;b.hp=Math.min(b.maxHp,b.hp+(b.kind==='wall'?185:140));
  decorateBuilding(b);makeUpgradeTag(b);
  for(let i=0;i<12;i++)particle(b.group.position.x,rand(.6,2),b.group.position.z,0xffdc80);
- showToast((b.kind==='wall'?'🧱 კედელი':'🏹 კოშკი')+' — დონე '+b.level+'!');
+ audio.play('upgrade');showToast((b.kind==='wall'?'🧱 კედელი':'🏹 კოშკი')+' — დონე '+b.level+'!');
  ui();
 }
 function createSlot(kind,x,z,rotation=0){
@@ -295,17 +318,18 @@ const hp=boss?180+state.wave*13:hard?74+state.wave*9:fast?18+state.wave*5:24+sta
 state.enemies.push({group:p.group,body:p.body,hp,maxHp:hp,speed:boss?1.7:hard?1.75:fast?rand(2.9,3.4):rand(2.0,2.45)+state.wave*.08,cd:rand(0,.5),hit:0,reward:boss?65:hard?20:fast?10:8,type:boss?'captain':hard?'armored':fast?'raider':'soldier'});
 state.spawned++;}
 function coin(x,z,amount=8){const g=new THREE.Group();const disk=cyl(g,.3,.3,.09,materials.gold,0,.55,0);disk.rotation.z=Math.PI/2;g.position.set(x,0,z);scene.add(g);state.pickups.push({group:g,time:0,amount:Math.random()<.14?amount+5:amount})}
-function hitEnemy(e,dmg){e.hp-=dmg;e.hit=.15;if(e.hp<=0){const pos=e.group.position.clone();scene.remove(e.group);state.enemies.splice(state.enemies.indexOf(e),1);state.kills++;coin(pos.x,pos.z,e.reward);for(let i=0;i<5;i++)particle(pos.x,1,pos.z,0xffd36b);if(state.kills%10===0)showToast('⚔️ '+state.kills+' მტერი დამარცხებულია!')}}
+function hitEnemy(e,dmg){audio.play('impact',e.hp<=dmg?.54:.38);e.hp-=dmg;e.hit=.15;if(e.hp<=0){const pos=e.group.position.clone();scene.remove(e.group);state.enemies.splice(state.enemies.indexOf(e),1);state.kills++;coin(pos.x,pos.z,e.reward);for(let i=0;i<5;i++)particle(pos.x,1,pos.z,0xffd36b);if(state.kills%10===0)showToast('⚔️ '+state.kills+' მტერი დამარცხებულია!')}}
 function particle(x,y,z,color){const p=sphere(scene,.1,new THREE.MeshBasicMaterial({color,transparent:true,opacity:1}),x,y,z);p.castShadow=false;state.particles.push({mesh:p,vx:rand(-2,2),vy:rand(1,4),vz:rand(-2,2),life:.55})}
 function shoot(from,to,dmg,color=0xffdf84){
   // A physical, visible arrow rather than the former glowing round projectile.
   const arrow=new THREE.Group();arrow.position.set(from.x,from.y||1.2,from.z);
   cyl(arrow,.035,.035,.85,materials.wood,0,0,0);
-  cone(arrow,.105,.24,materials.wall,0,.50,0);
+  cone(arrow,.105,.24,materials.wall,0,.53,0);
   const feather=color===0x9df5af?materials.green:materials.yellow;
   cube(arrow,.18,.055,.11,feather,0,-.34,0);
   cube(arrow,.11,.055,.18,feather,0,-.34,0);
-  scene.add(arrow);state.shots.push({mesh:arrow,to,dmg,speed:27,life:1.35});
+  scene.add(arrow);state.shots.push({mesh:arrow,to,dmg,speed:29,life:1.32});
+  audio.play('arrow',color===0x9df5af?.27:.78);
 }
 function build(kind){
   if(!state.playing||state.dead)return;
@@ -342,19 +366,19 @@ function build(kind){
   decorateBuilding(building);makeUpgradeTag(building);
   slot.occupied=true;slot.group.visible=false;selectedSlot=null;selectedBuild=building;state.coins-=cost;
   for(let i=0;i<9;i++)particle(g.position.x,rand(.5,1.7),g.position.z,kind==='wall'?0xffdb87:0x8debd2);
-  showToast(kind==='wall'?'🧱 გალავნის ნაწილი აშენდა!':'🏹 მშვილდოსნის კოშკი მზადაა!');
+  audio.play('build');showToast(kind==='wall'?'🧱 გალავნის ნაწილი აშენდა!':'🏹 მშვილდოსნის კოშკი მზადაა!');
   ui();
 }
-function upgrade(){const cost=60+(state.level-1)*35;if(state.coins<cost)return;state.coins-=cost;state.level++;state.damage+=7;state.maxHp+=18;state.hp=Math.min(state.maxHp,state.hp+35);state.maxFortHP+=25;state.fortHP=Math.min(state.maxFortHP,state.fortHP+55);hero.group.scale.setScalar(1+Math.min(state.level-1,4)*.045);showToast('⬆️ გმირი გაძლიერდა! დონე '+state.level);ui()}
-function heal(){if(state.coins<35||state.hp>=state.maxHp)return;state.coins-=35;state.hp=Math.min(state.maxHp,state.hp+30);showToast('❤️ სიცოცხლე აღდგენილია');ui()}
-function dash(){if(state.dashCd>0||!state.playing)return;state.dashTime=.22;state.dashCd=3;showToast('⚡ სწრაფი მოძრაობა')}
-function beginWave(){state.waveTotal=12+state.wave*6;state.waveLeft=state.waveTotal;state.spawned=0;state.spawnCd=.7;state.waveWait=0;showToast('🌊 ტალღა '+state.wave+(state.wave%4===0?' • კაპიტანის შეტევა!':' • მტრის ნაკადი მოდის!'));ui()}
+function upgrade(){const cost=60+(state.level-1)*35;if(state.coins<cost)return;state.coins-=cost;state.level++;state.damage+=7;state.maxHp+=18;state.hp=Math.min(state.maxHp,state.hp+35);state.maxFortHP+=25;state.fortHP=Math.min(state.maxFortHP,state.fortHP+55);hero.group.scale.setScalar(1+Math.min(state.level-1,4)*.045);audio.play('upgrade');showToast('⬆️ გმირი გაძლიერდა! დონე '+state.level);ui()}
+function heal(){if(state.coins<35||state.hp>=state.maxHp)return;state.coins-=35;state.hp=Math.min(state.maxHp,state.hp+30);audio.play('coin',.45);showToast('❤️ სიცოცხლე აღდგენილია');ui()}
+function dash(){if(state.dashCd>0||!state.playing)return;state.dashTime=.22;state.dashCd=3;audio.play('dash');showToast('⚡ სწრაფი მოძრაობა')}
+function beginWave(){state.waveTotal=12+state.wave*6;state.waveLeft=state.waveTotal;state.spawned=0;state.spawnCd=.7;state.waveWait=0;audio.play('wave',.52);showToast('🌊 ტალღა '+state.wave+(state.wave%4===0?' • კაპიტანის შეტევა!':' • მტრის ნაკადი მოდის!'));ui()}
 
 function reset(){for(const name of ['enemies','builds','shots','pickups','particles']){for(const item of state[name])scene.remove(item.group||item.mesh);state[name].length=0}
 for(const slot of slots){slot.occupied=false;slot.group.visible=true}selectedSlot=null;selectedBuild=null;
 Object.assign(state,{playing:true,dead:false,coins:80,hp:100,maxHp:100,fortHP:500,maxFortHP:500,wave:1,kills:0,level:1,damage:24,attackCd:0,spawnCd:0,waveLeft:0,spawned:0,waveTotal:0,dashCd:0,dashTime:0,waveWait:0});
 hero.group.position.set(2,0,6.5);hero.group.scale.setScalar(1);facing.set(0,0,-1);$('intro').classList.add('hidden');$('over').classList.add('hidden');$('center').style.pointerEvents='none';beginWave();ui()}
-function endGame(reason='hero'){state.dead=true;state.playing=false;$('result').textContent=(reason==='castle'?'🏰 ციხესიმაგრე დაინგრა! ':'🏹 გმირი დამარცხდა! ')+'მიაღწიე '+state.wave+'-ე ტალღამდე • დაამარცხე '+state.kills+' მტერი • ააშენე '+state.builds.length+' ნაგებობა';$('over').classList.remove('hidden');$('center').style.pointerEvents='auto'}
+function endGame(reason='hero'){if(state.dead)return;audio.play('defeat');state.dead=true;state.playing=false;$('result').textContent=(reason==='castle'?'🏰 ციხესიმაგრე დაინგრა! ':'🏹 გმირი დამარცხდა! ')+'მიაღწიე '+state.wave+'-ე ტალღამდე • დაამარცხე '+state.kills+' მტერი • ააშენე '+state.builds.length+' ნაგებობა';$('over').classList.remove('hidden');$('center').style.pointerEvents='auto'}
 function frame(now){requestAnimationFrame(frame);const dt=Math.min(.17,Math.max(0,(now-(state.lastTime||now))/1000));state.lastTime=now;
 const pos=hero.group.position;
 if(state.playing){
@@ -371,7 +395,10 @@ if(target && state.attackCd<=0){
   const aim=target.group.position.clone().sub(pos);
   hero.group.rotation.y=Math.atan2(aim.x,aim.z);
   const start=pos.clone().addScaledVector(aim.normalize(),.46);start.y=1.54;
-  shoot(start,target,state.damage,0xfbe5a0);
+  hero.group.updateMatrixWorld(true);
+  const rig=hero.body.userData.rig;
+  const bowOrigin=rig?rig.bow.localToWorld(new THREE.Vector3(.03,.06,.42)):start;
+  shoot(bowOrigin,target,state.damage,0xfbe5a0);
   state.attackCd=.39;hero.body.rotation.z=-.16;
   if(hero.body.userData.rig){hero.body.userData.rig.draw=0;hero.body.userData.rig.shotFlash=1;}
 }else{hero.body.rotation.z*=.85}
@@ -402,7 +429,7 @@ for(const enemy of [...state.enemies]){
     enemy.cd=.98;
     if(targetObj){
       targetObj.hp-=10+state.wave;
-      for(let i=0;i<3;i++)particle(ep.x,1,ep.z,0xf4cca4);
+      audio.play('damage',.27);for(let i=0;i<3;i++)particle(ep.x,1,ep.z,0xf4cca4);
       if(targetObj.hp<=0){
         scene.remove(targetObj.group);state.builds.splice(state.builds.indexOf(targetObj),1);
         targetObj.slot.occupied=false;targetObj.slot.group.visible=true;
@@ -412,11 +439,11 @@ for(const enemy of [...state.enemies]){
       }
     }else if(targetingCastle){
       state.fortHP=Math.max(0,state.fortHP-(7+state.wave*.7));
-      for(let i=0;i<3;i++)particle(ep.x,1,ep.z,0xff684e);
+      audio.play('damage',.35);for(let i=0;i<3;i++)particle(ep.x,1,ep.z,0xff684e);
       if(state.fortHP<=0)endGame('castle');
     }else if(state.dashTime<=0){
       state.hp=Math.max(0,state.hp-Math.max(3,7+state.wave*.55-state.level));
-      for(let i=0;i<3;i++)particle(pos.x,1,pos.z,0xff5555);
+      audio.play('damage',.7);for(let i=0;i<3;i++)particle(pos.x,1,pos.z,0xff5555);
       if(state.hp<=0)endGame('hero');
     }
   }
@@ -449,7 +476,7 @@ for(const item of [...state.pickups]){
  item.group.rotation.y+=dt*3.1;
  const gap=dist2(item.group.position,pos);
  if(gap<5.6&&gap>1.30){const step=Math.min(gap-1.25,dt*(4.5+item.time*.16));item.group.position.x+=(pos.x-item.group.position.x)/gap*step;item.group.position.z+=(pos.z-item.group.position.z)/gap*step}
- if(dist2(item.group.position,pos)<1.7){state.coins+=item.amount;for(let i=0;i<4;i++)particle(item.group.position.x,.6,item.group.position.z,0xffdf7f);scene.remove(item.group);state.pickups.splice(state.pickups.indexOf(item),1)}}
+ if(dist2(item.group.position,pos)<1.7){audio.play('coin',.27);state.coins+=item.amount;for(let i=0;i<4;i++)particle(item.group.position.x,.6,item.group.position.z,0xffdf7f);scene.remove(item.group);state.pickups.splice(state.pickups.indexOf(item),1)}}
 for(const item of [...state.particles]){item.life-=dt;item.mesh.position.x+=item.vx*dt;item.mesh.position.y+=item.vy*dt;item.mesh.position.z+=item.vz*dt;item.vy-=9*dt;item.mesh.material.opacity=Math.max(0,item.life/.55);if(item.life<=0){scene.remove(item.mesh);state.particles.splice(state.particles.indexOf(item),1)}}
 for(const b of state.builds){if(b.tag){
     const near=dist2(b.group.position,pos)<13;
@@ -492,12 +519,16 @@ renderer.domElement.addEventListener('pointercancel',releaseStick);
 window.addEventListener('pointerup',releaseStick);
 window.addEventListener('pointercancel',releaseStick);
 
+$('musicToggle').onclick=()=>{audio.unlock();audio.toggleMusic();renderAudioControls()};
+$('sfxToggle').onclick=()=>{audio.unlock();audio.toggleSfx();renderAudioControls()};
+renderAudioControls();
+document.addEventListener('pointerdown',()=>{if(state.playing&&!audio.state().running)audio.unlock()},{passive:true});
 $('structureUpgradeBtn').onclick=upgradeStructure;
-$('wallBtn').onclick=()=>build('wall');$('towerBtn').onclick=()=>build('tower');$('upgradeBtn').onclick=upgrade;$('healBtn').onclick=heal;$('dashBtn').onclick=dash;$('startBtn').onclick=reset;$('againBtn').onclick=reset;
+$('wallBtn').onclick=()=>build('wall');$('towerBtn').onclick=()=>build('tower');$('upgradeBtn').onclick=upgrade;$('healBtn').onclick=heal;$('dashBtn').onclick=dash;$('startBtn').onclick=()=>{audio.unlock();reset()};$('againBtn').onclick=()=>{audio.unlock();reset()};
 camera.position.set(21,22,22);camera.lookAt(0,0,0);ui();requestAnimationFrame(frame);
 
 if(location.pathname.toLowerCase().includes('developer')){
-const panel=document.createElement('aside');panel.id='devPanel';panel.innerHTML='<div class="devtitle">🛠️ DEVELOPER • GEORGIA 0.3</div><button id="devMoney">🪙 +1000</button><button id="devGod">🛡️ უკვდავება OFF</button><button id="devSkip">⏩ შემდეგი ტალღა</button><button id="devFull">❤️ შევსება</button><button id="devWalls">🏰 ყველა ნაგებობა</button>';document.body.append(panel);
+const panel=document.createElement('aside');panel.id='devPanel';panel.innerHTML='<div class="devtitle">🛠️ DEVELOPER • GEORGIA 0.4</div><button id="devMoney">🪙 +1000</button><button id="devGod">🛡️ უკვდავება OFF</button><button id="devSkip">⏩ შემდეგი ტალღა</button><button id="devFull">❤️ შევსება</button><button id="devWalls">🏰 ყველა ნაგებობა</button>';document.body.append(panel);
 $('devMoney').onclick=()=>{state.coins+=1000;ui();showToast('🪙 +1000')};
 $('devGod').onclick=()=>{const enabled=state.maxHp<5000;if(enabled){state.maxHp=99999;state.hp=99999;}else{state.maxHp=100+(state.level-1)*18;state.hp=state.maxHp}$('devGod').textContent='🛡️ უკვდავება '+(enabled?'ON':'OFF');ui();};
 $('devSkip').onclick=()=>{if(!state.playing)return;for(const e of state.enemies)scene.remove(e.group);state.enemies.length=0;state.waveLeft=0;state.waveWait=2.5;showToast('⏩ შემდეგი ტალღა')};
@@ -505,4 +536,4 @@ $('devFull').onclick=()=>{state.hp=state.maxHp;state.fortHP=state.maxFortHP;ui()
 $('devWalls').onclick=()=>{if(!state.playing)return;state.coins+=3000;for(const slot of [...slots]){if(!slot.occupied){hero.group.position.set(slot.group.position.x,0,slot.group.position.z+2);selectedSlot=slot;build(slot.kind)}}hero.group.position.set(2,0,6.5);ui()};
 }
 
-if(location.pathname.toLowerCase().includes('developer'))window.__GEORGIA_DEV={state,hero,slots,get selected(){return selectedBuild},upgradeStructure};
+if(location.pathname.toLowerCase().includes('developer'))window.__GEORGIA_DEV={state,hero,slots,audio,get selected(){return selectedBuild},upgradeStructure};

@@ -11,3 +11,6 @@ node_modules/
 alpha03-*.cjs
 alpha03-*.png
 patch-alpha03-*.py
+alpha04-*.cjs
+alpha04-*.png
+patch-alpha04-*.py

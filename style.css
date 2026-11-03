@@ -58,3 +58,18 @@
   #buildpanel{bottom:194px}
   .structure-panel{bottom:294px}
 }
+
+
+/* Alpha 0.4: audio controls and discreet visibility on compact devices */
+#audioControls{position:fixed;left:max(11px,env(safe-area-inset-left));top:max(57px,calc(env(safe-area-inset-top) + 50px));z-index:4;display:flex;align-items:center;gap:5px}
+#audioControls button{background:#173532d9;color:#f9e5b7;border:1px solid #e6c6898a;min-height:32px;border-radius:10px;padding:5px 9px;font-size:10px;font-weight:800;line-height:1;box-shadow:0 3px 8px #10231c50;white-space:nowrap;backdrop-filter:blur(5px)}
+#audioControls button.audio-muted{opacity:.58;border-color:#9ca6a275}
+#audioControls button:focus-visible{outline:2px solid #ffe5a1;outline-offset:2px}
+@media(max-width:780px){
+ #audioControls{top:max(54px,calc(env(safe-area-inset-top) + 49px));left:10px;gap:4px}
+ #audioControls button{font-size:9px;padding:6px 7px;min-height:29px}
+ #guide{top:118px}
+}
+@media(max-width:360px){
+ #audioControls button{padding:5px 6px;font-size:9px}
+}
