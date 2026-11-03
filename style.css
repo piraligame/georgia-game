@@ -29,3 +29,32 @@
   #spotHint{display:none}
   .modal{max-height:90vh;overflow-y:auto}
 }
+
+
+/* Alpha 0.3: raise upgrades, dynamic Pirali-style touch joystick */
+#joystick{position:fixed;left:0;top:0;bottom:auto;width:112px;height:112px;opacity:0;pointer-events:none;z-index:3;transform:translate(-50%,-50%) scale(.88);transition:opacity .085s,transform .085s;background:#183c3978;border:2px solid #f5e6b9d4;box-shadow:0 0 0 7px #b9e7ba18,inset 0 0 25px #090f0f80}
+#joystick.active{opacity:1;transform:translate(-50%,-50%) scale(1)}
+#stick{width:48px;height:48px;left:calc(50% - 24px);top:calc(50% - 24px);background:linear-gradient(145deg,#f8dfad,#af8847)}
+#buildpanel{bottom:max(244px,calc(env(safe-area-inset-bottom) + 225px));width:min(460px,88vw)}
+.structure-panel{position:fixed;z-index:4;left:50%;transform:translateX(-50%);bottom:max(358px,calc(env(safe-area-inset-bottom) + 340px));width:min(440px,84vw);border:1px solid #e6c47b9c;background:#18352de8;border-radius:14px;padding:8px 12px;box-shadow:0 8px 24px #0009;display:flex;justify-content:space-between;align-items:center;gap:8px;backdrop-filter:blur(10px)}
+.structure-panel span{font-size:11px;color:#ffe7aa;font-weight:800}
+.structure-panel button{background:linear-gradient(#fbd991,#bd853e);color:#242515;border-radius:10px;padding:9px 12px;font-size:11px;font-weight:900;white-space:nowrap}
+.structure-panel button:disabled{filter:grayscale(1);opacity:.54}
+#waveInfo{position:fixed;left:50%;top:145px;transform:translateX(-50%);padding:7px 13px;border:1px solid #f8e3b25f;border-radius:10px;background:#112d2dcc;display:flex;align-items:center;gap:12px;color:#fce5af;font-size:10px;font-weight:800;white-space:nowrap;pointer-events:none;text-shadow:0 1px #0008;box-shadow:0 3px 12px #0004}
+#waveRemain{color:#cce4c4}
+#guide{top:118px}
+@media(max-width:780px){
+  #joystick{width:108px;height:108px;left:0;top:0;bottom:auto}
+  #buildpanel{bottom:max(233px,calc(env(safe-area-inset-bottom) + 215px));width:min(94vw,365px)}
+  .structure-panel{bottom:max(348px,calc(env(safe-area-inset-bottom) + 326px));width:min(94vw,365px)}
+  #waveInfo{top:139px;font-size:9px;max-width:95vw}
+  #guide{top:114px}
+}
+@media(max-width:410px){
+  #buildpanel{bottom:max(235px,calc(env(safe-area-inset-bottom) + 217px));width:min(96vw,330px)}
+  .structure-panel{bottom:max(350px,calc(env(safe-area-inset-bottom) + 328px));width:min(96vw,330px)}
+}
+@media(max-height:720px) and (max-width:780px){
+  #buildpanel{bottom:194px}
+  .structure-panel{bottom:294px}
+}

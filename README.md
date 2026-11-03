@@ -1,52 +1,48 @@
 # GEORGIA — სამეფოს დაცვა 🇬🇪
 
-**Alpha 0.2** • Independent, playable low-poly 3D survival and fortress-building game.
+**Alpha 0.3** · original low-poly isometric 3D browser game: an archer defends a Georgian castle, collects coins and builds an upgradable fortress.
 
-🎮 [Play online](https://piraligame.github.io/georgia-game/) • 🛠️ [Developer version](https://piraligame.github.io/georgia-game/developer.html)
+🎮 **Player**: https://piraligame.github.io/georgia-game/
 
-GEORGIA is a **separate game project**. It does not modify or depend on PIRALI.
+🛠️ **Developer**: https://piraligame.github.io/georgia-game/developer.html
 
-## What's new in Alpha 0.2
+The GEORGIA repository is independent from PIRALI; PIRALI files are not modified.
 
-- Georgian flag on the start screen and a five-cross Georgian flag flying above the fortress
-- The hero now carries a **bow, quiver, and arrows**; the hero and archery towers shoot visible 3D arrows
-- **18 predefined building sites** around the castle: 14 wall sections and 4 archer towers
-- Approach a glowing site (or tap it) and press the corresponding construction button
-- Each finished wall forms part of the castle defense; enemy attacks can destroy structures, freeing the site for rebuilding
-- Enemies pursue the hero when nearby, otherwise they assault the fortress
-- New **fortress durability** meter, castle defeat condition and wave-survival bonuses
-- More effective automatic aiming, archer towers, visible construction effects
-- Improved touch UI with build controls moved higher, away from the joystick
-- Both Player and Developer versions updated; corrected Georgian text encoding
+## Alpha 0.3 — changes
 
-## Gameplay
+- **Dynamic floating joystick**, inspired by PIRALI: touch anywhere on the open lower game area below the construction panel; it appears directly under the finger, moves the hero, and disappears when released
+- Construction panel is **raised further** to avoid accidental touches and improve usable thumb space on narrow screens
+- Redesigned hero bow with low-poly sculpted bow limbs, **animated string pull and release**, articulated shoulders and hands, animated nocked arrow and visible flying arrows
+- Defending archers on towers now animate, aim, and shoot; bow damage and tower reload time improve with upgrades
+- **18 predefined construction pads** remain available: 14 walls and 4 archer towers
+- **Independent building upgrades, levels 1–4**: tap the structure or build on a pad to select it, see the upgrade cost on a floating world label and in a bottom upgrade panel; upgrades cost coins and add HP, damage/firepower or visible decoration
+- **Faster, denser enemy waves** approaching in several lanes; raiders, armored soldiers, and an enemy captain each fourth wave
+- **Castle integrity and wave objective HUD**, useful wave bonuses, coin rewards depending on enemy type and gentle coin magnet effect
+- Added blue-roofed village houses, flower patches and hero marker while retaining the original low-poly art style
+- Player and Developer versions share the same game logic; Developer includes test currencies, invulnerability, skipping waves and quickly constructing all buildings
 
-One playable hero defends the Georgian fortress from waves of enemies. Fight with a bow, collect dropped coins, place defenses on marked locations, improve the hero, and survive increasingly difficult waves.
+## Controls
 
-**Controls (PC):** WASD / arrows — movement; **Q** — wall; **E** — archer tower; **R** — upgrade; **Space** — dash.
+**Phone:** touch the empty area **below** the build panel and drag for movement. Joystick appears only while touching. Tap a highlighted building site then use the wall/tower button. Tap an existing building and use the new **⬆️ გააძლიერე** button with its coin cost. Separate dash and healing actions remain at the bottom right.
 
-**Controls (Android/mobile):** left joystick, building buttons, dash and healing. Touch a glowing building marker to select the desired spot.
+**PC:** WASD/arrows to move; Q builds nearest wall, E builds nearest tower; F upgrades the selected structure; R upgrades the hero; Space dashes.
 
-**Developer page:** +1000 coins, immortality, next wave, full health.
+## Local testing
 
-## Local preview
-
-Start a server in this folder:
+From this directory:
 
 ```sh
 python -m http.server 8765
 ```
 
-Open `http://localhost:8765` (Player) or `http://localhost:8765/developer.html` (Developer).
+Player: `http://localhost:8765/`
 
-Three.js loads via CDN; an internet connection is required for the first page load. The project is a browser prototype, **not** a native Unity/Android package yet.
+Developer: `http://localhost:8765/developer.html`
+
+Loads Three.js from a CDN. Internet connection is needed. This is still a browser prototype, not a native Android/Unity project.
 
 ## Roadmap
 
-- More detailed bow and combat animations
-- Villagers and resource-gathering
-- Defense upgrade trees and a gate
-- More enemy types, bosses, and long-term progression
-- Separate Unity 3D Android build
+More building types, more strategic wave events, villagers and resource gathering, better 3D animations and an eventual independent Unity Android game.
 
 © GEORGIA prototype.

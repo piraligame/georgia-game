@@ -8,3 +8,6 @@ patch-alpha*.py
 node_modules/
 *.log
 .DS_Store
+alpha03-*.cjs
+alpha03-*.png
+patch-alpha03-*.py
