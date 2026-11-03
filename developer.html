@@ -1,0 +1,17 @@
+﻿<!doctype html>
+<html lang="ka"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><meta name="theme-color" content="#101c1b"><title>GEORGIA Developer â€” áƒ¡áƒáƒ›áƒ”áƒ¤áƒáƒ¡ áƒ“áƒáƒªáƒ•áƒ</title><link rel="stylesheet" href="./style.css"></head>
+<body>
+<div id="game"></div><div id="vignette"></div>
+<div id="hud">
+  <div class="brand"><b>GEORGIA</b><span>áƒ¡áƒáƒ›áƒ”áƒ¤áƒáƒ¡ áƒ“áƒáƒªáƒ•áƒ â€¢ ALPHA 0.1</span></div>
+  <div class="statline"><div class="stat">ðŸª™ <b id="coins">0</b></div><div class="stat">ðŸŒŠ <b id="wave">1</b></div><div class="stat">âš”ï¸ <b id="kills">0</b></div></div>
+  <div class="healthrow"><div class="healthtrack"><div id="healthbar"></div></div><span id="healthtext">100 / 100</span></div>
+</div>
+<div id="guide">áƒ¨áƒ”áƒáƒ’áƒ áƒáƒ•áƒ” áƒ›áƒáƒœáƒ”áƒ¢áƒ”áƒ‘áƒ˜ â€¢ áƒáƒáƒ¨áƒ”áƒœáƒ” áƒ™áƒ”áƒ“áƒšáƒ”áƒ‘áƒ˜ áƒ“áƒ áƒ™áƒáƒ¨áƒ™áƒ”áƒ‘áƒ˜ â€¢ áƒ’áƒáƒ£áƒ«áƒ”áƒšáƒ˜ áƒ¢áƒáƒšáƒ¦áƒ”áƒ‘áƒ¡</div>
+<div id="toast"></div>
+<div id="buildpanel"><div class="panel-title">ðŸ° áƒáƒáƒ¨áƒ”áƒœáƒ” áƒ“áƒ áƒ’áƒáƒáƒ«áƒšáƒ˜áƒ”áƒ áƒ”</div><div class="buildrow"><button id="wallBtn" class="build"><b>ðŸ§± áƒ™áƒ”áƒ“áƒ”áƒšáƒ˜</b><small>ðŸª™ 20</small></button><button id="towerBtn" class="build"><b>ðŸ¹ áƒ™áƒáƒ¨áƒ™áƒ˜</b><small>ðŸª™ 45</small></button><button id="upgradeBtn" class="build"><b>â¬†ï¸ áƒ’áƒáƒ«áƒšáƒ˜áƒ”áƒ áƒ”áƒ‘áƒ</b><small id="upgradePrice">ðŸª™ 60</small></button></div></div>
+<div id="joystick"><div id="stick"></div></div>
+<div id="actions"><button id="dashBtn">âš¡<small>áƒ’áƒáƒ¥áƒªáƒ”áƒ•áƒ</small></button><button id="healBtn">â¤ï¸<small>+30 HP<br>ðŸª™ 35</small></button></div>
+<div id="center"><section id="intro" class="modal"><div class="crest">â™›</div><div class="eyebrow">áƒáƒ®áƒáƒšáƒ˜ áƒ¡áƒáƒ—áƒáƒ•áƒ’áƒáƒ“áƒáƒ¡áƒáƒ•áƒšáƒ áƒ—áƒáƒ›áƒáƒ¨áƒ˜</div><h1>GEORGIA</h1><h2>áƒ“áƒáƒ˜áƒªáƒáƒ•áƒ˜ áƒ¨áƒ”áƒœáƒ˜ áƒ¡áƒáƒ›áƒ”áƒ¤áƒ</h2><p>áƒ˜áƒ›áƒáƒ«áƒ áƒáƒ•áƒ”, áƒáƒ•áƒ¢áƒáƒ›áƒáƒ¢áƒ£áƒ áƒáƒ“ áƒ¨áƒ”áƒ£áƒ¢áƒ˜áƒ” áƒ›áƒ¢áƒ”áƒ áƒ¡, áƒ¨áƒ”áƒáƒ’áƒ áƒáƒ•áƒ” áƒ›áƒáƒœáƒ”áƒ¢áƒ”áƒ‘áƒ˜ áƒ“áƒ áƒ¨áƒ”áƒœáƒ¡ áƒ’áƒáƒ áƒ¨áƒ”áƒ›áƒ áƒáƒáƒ¨áƒ”áƒœáƒ” áƒªáƒ˜áƒ®áƒ”áƒ¡áƒ˜áƒ›áƒáƒ’áƒ áƒ”. áƒ§áƒáƒ•áƒ”áƒšáƒ˜ áƒ¢áƒáƒšáƒ¦áƒ áƒ£áƒ¤áƒ áƒ áƒ¡áƒáƒ˜áƒœáƒ¢áƒ”áƒ áƒ”áƒ¡áƒ áƒ®áƒ“áƒ”áƒ‘áƒ.</p><button id="startBtn" class="primary">âš”ï¸ áƒ—áƒáƒ›áƒáƒ¨áƒ˜áƒ¡ áƒ“áƒáƒ¬áƒ§áƒ”áƒ‘áƒ</button><small>áƒ¢áƒ”áƒšáƒ”áƒ¤áƒáƒœáƒ˜: áƒ›áƒáƒ áƒªáƒ®áƒ”áƒœáƒ áƒ¯áƒáƒ˜áƒ¡áƒ¢áƒ˜áƒ™áƒ˜ â€¢ áƒ™áƒáƒ›áƒžáƒ˜áƒ£áƒ¢áƒ”áƒ áƒ˜: WASD / áƒ˜áƒ¡áƒ áƒ”áƒ‘áƒ˜<br>áƒ™áƒ”áƒ“áƒ”áƒšáƒ˜ Q â€¢ áƒ™áƒáƒ¨áƒ™áƒ˜ E â€¢ Dash Space</small></section><section id="over" class="modal hidden"><div class="crest">âš”</div><h1>áƒ‘áƒ áƒ«áƒáƒšáƒ áƒ“áƒáƒ¡áƒ áƒ£áƒšáƒ“áƒ</h1><p id="result"></p><button id="againBtn" class="primary">áƒ—áƒáƒ•áƒ˜áƒ“áƒáƒœ áƒ—áƒáƒ›áƒáƒ¨áƒ˜</button></section></div>
+<script type="module" src="./main.js"></script>
+</body></html>

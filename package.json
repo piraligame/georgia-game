@@ -1,0 +1,11 @@
+{
+  "name": "georgia-game",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Georgia 3D survival + base building browser prototype",
+  "scripts": {
+    "start": "npx serve . -l 8080",
+    "check": "node --check main.js"
+  }
+}

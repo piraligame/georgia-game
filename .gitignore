@@ -1,0 +1,6 @@
+smoke-test.cjs
+dev-smoke.cjs
+smoke.png
+node_modules/
+*.log
+.DS_Store

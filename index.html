@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="ka"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><meta name="theme-color" content="#101c1b"><title>GEORGIA — სამეფოს დაცვა</title><link rel="stylesheet" href="./style.css"></head>
+<body>
+<div id="game"></div><div id="vignette"></div>
+<div id="hud">
+  <div class="brand"><b>GEORGIA</b><span>სამეფოს დაცვა • ALPHA 0.1</span></div>
+  <div class="statline"><div class="stat">🪙 <b id="coins">0</b></div><div class="stat">🌊 <b id="wave">1</b></div><div class="stat">⚔️ <b id="kills">0</b></div></div>
+  <div class="healthrow"><div class="healthtrack"><div id="healthbar"></div></div><span id="healthtext">100 / 100</span></div>
+</div>
+<div id="guide">შეაგროვე მონეტები • ააშენე კედლები და კოშკები • გაუძელი ტალღებს</div>
+<div id="toast"></div>
+<div id="buildpanel"><div class="panel-title">🏰 ააშენე და გააძლიერე</div><div class="buildrow"><button id="wallBtn" class="build"><b>🧱 კედელი</b><small>🪙 20</small></button><button id="towerBtn" class="build"><b>🏹 კოშკი</b><small>🪙 45</small></button><button id="upgradeBtn" class="build"><b>⬆️ გაძლიერება</b><small id="upgradePrice">🪙 60</small></button></div></div>
+<div id="joystick"><div id="stick"></div></div>
+<div id="actions"><button id="dashBtn">⚡<small>გაქცევა</small></button><button id="healBtn">❤️<small>+30 HP<br>🪙 35</small></button></div>
+<div id="center"><section id="intro" class="modal"><div class="crest">♛</div><div class="eyebrow">ახალი სათავგადასავლო თამაში</div><h1>GEORGIA</h1><h2>დაიცავი შენი სამეფო</h2><p>იმოძრავე, ავტომატურად შეუტიე მტერს, შეაგროვე მონეტები და შენს გარშემო ააშენე ციხესიმაგრე. ყოველი ტალღა უფრო საინტერესო ხდება.</p><button id="startBtn" class="primary">⚔️ თამაშის დაწყება</button><small>ტელეფონი: მარცხენა ჯოისტიკი • კომპიუტერი: WASD / ისრები<br>კედელი Q • კოშკი E • Dash Space</small></section><section id="over" class="modal hidden"><div class="crest">⚔</div><h1>ბრძოლა დასრულდა</h1><p id="result"></p><button id="againBtn" class="primary">თავიდან თამაში</button></section></div>
+<script type="module" src="./main.js"></script>
+</body></html>
