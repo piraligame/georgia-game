@@ -696,6 +696,39 @@ const economyDefinitions={
  stable:{name:'🐎 საჯინიბო',coins:150,wood:16,interval:12,description:'მხედრების გახსნა და ჯარის სისწრაფე'}
 };
 const economyPlots=[],economyNames=['farm','lumber','workshop','barracks','market','forge','infirmary','quarry','stable'];
+// Distinct BUILD PLAN signs. Important barracks and forge sites stay visible
+// farther away, so players never need to guess which pad constructs what.
+const specialConstructionColors={barracks:0xc8544b,forge:0xd59042};
+function paintEconomySign(plot){
+ const kind=plot.preferredKind,def=economyDefinitions[kind];
+ if(!def)return;
+ if(!plot.signCanvas){
+   plot.signCanvas=document.createElement('canvas');
+   plot.signCanvas.width=640;plot.signCanvas.height=160;
+   plot.signTexture=new THREE.CanvasTexture(plot.signCanvas);
+   plot.signTexture.colorSpace=THREE.SRGBColorSpace;
+   const sprite=new THREE.Sprite(new THREE.SpriteMaterial({
+      map:plot.signTexture,transparent:true,depthTest:false,depthWrite:false}));
+   sprite.position.set(0,2.30,0);
+   plot.group.add(sprite);plot.sign=sprite;
+ }
+ const canvas=plot.signCanvas,ctx=canvas.getContext('2d');
+ ctx.clearRect(0,0,640,160);
+ const special=kind==='barracks'||kind==='forge';
+ const main=kind==='barracks'?'#8a302b':kind==='forge'?'#976522':'#244e40';
+ ctx.fillStyle=main;ctx.strokeStyle=special?'#ffe0a3':'#a1d5b1';ctx.lineWidth=7;
+ ctx.beginPath();ctx.roundRect(8,9,624,139,22);ctx.fill();ctx.stroke();
+ ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#ffeed2';
+ ctx.font='bold 47px sans-serif';ctx.fillText(def.name,320,65,585);
+ ctx.font='bold 30px sans-serif';ctx.fillStyle='#f8df9a';
+ ctx.fillText('აშენება • 🪙 '+def.coins+'  🌲 '+def.wood,320,116,585);
+ plot.signTexture.needsUpdate=true;
+ plot.sign.scale.set(special?7.6:4.0,special?1.90:1.0,1);
+ if(plot.colorRing)plot.colorRing.material.color.setHex(
+   specialConstructionColors[kind]||0x6fa786);
+ plot.sign.visible=true;
+}
+
 let selectedEconomyPlot=null,selectedEconomy=null,buildMode='defense';
 const economyMarkerMat=new THREE.MeshBasicMaterial({color:0xbbe2b7,transparent:true,opacity:.58,depthWrite:false});
 for(const [i,coords] of [
@@ -714,7 +747,18 @@ for(const [i,coords] of [
   new THREE.MeshBasicMaterial({color:0xa2e1b4,transparent:true,opacity:.002,depthWrite:false}),0,.15,0);
  info.castShadow=false;
  const plot={index:i,group:g,marker,info,occupied:false,building:null,preferredKind:economyNames[i%economyNames.length],deposit:0};
+ const colorRing=mesh(g,new THREE.RingGeometry(1.40,1.83,30),
+    new THREE.MeshBasicMaterial({color:0x6fa786,side:THREE.DoubleSide,
+      transparent:true,opacity:.80,depthWrite:false}),0,.055,0);
+ colorRing.rotation.x=-Math.PI/2;colorRing.castShadow=false;plot.colorRing=colorRing;
+ // A distinct foundation and corner flag make special build pads visible.
+ const beacon=cube(g,.23,1.25,.23,materials.wood,-1.60,.62,-1.42);
+ const pennant=mesh(g,new THREE.PlaneGeometry(.85,.55),
+     new THREE.MeshBasicMaterial({color:0xe9ca8a,side:THREE.DoubleSide}),
+     -1.15,1.26,-1.42);
+ pennant.castShadow=false;plot.pennant=pennant;
  info.userData.economyPlot=plot;economyPlots.push(plot);
+ paintEconomySign(plot);
 }
 function economyCost(kind){return economyDefinitions[kind]}
 function economyUpgradePrice(b){return{coins:30+b.level*38,wood:2+b.level*5}}
@@ -879,7 +923,7 @@ function buildEconomy(kind,forced=null,restoring=false,prepaid=false){
  const selectHit=mesh(model,new THREE.BoxGeometry(3.8,4,3.8),
    new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.001,depthWrite:false}),0,1.7,0);
  selectHit.castShadow=false;
- const b={kind,group:model,level:1,plot,hp:180,maxHp:180,tick:cost.interval,spawnTimer:5,workers:0,
+ const b={kind,group:model,level:1,plot,hp:180,maxHp:180,tick:cost.interval,spawnTimer:60,workers:0,
    hit:selectHit,decor:null,label:null};
  selectHit.userData.economyBuilding=b;
  plot.occupied=true;plot.building=b;plot.group.visible=false;
@@ -908,9 +952,9 @@ function upgradeEconomy(prepaid=false){
 function tickEconomy(dt,now){
  for(const b of state.economy){
    if(b.kind==='barracks'&&state.guards.length<9){
-     b.spawnTimer=(b.spawnTimer??5)-dt;
+     b.spawnTimer=(b.spawnTimer??60)-dt;
      if(b.spawnTimer<=0){
-       b.spawnTimer+=5; // One free defender every five seconds per barracks.
+       b.spawnTimer=60; // One free defender per barracks, once every 60 seconds.
        const role=b.level>=2&&Math.floor(state.kills+state.guards.length)%3===1?'archer':'sword';
        recruitGuard(role,false,true,b);
      }
@@ -982,7 +1026,7 @@ function changeBuildMode(mode){
 }
 const state={playing:false,dead:false,coins:185,wood:75,meteorCd:0,effects:[],score:0,combo:0,comboTimer:0,armyLevel:1,armyFormation:'follow',weaponLevel:0,castleLevel:1,cryCd:0,battleCryTime:0,missionStep:0,missionRewards:0,totalConstruction:0,recruited:0,missionTicker:.1,hp:130,maxHp:130,fortHP:720,maxFortHP:720,
  wave:1,kills:0,level:1,damage:35,attackCd:0,shotInterval:.38,towerBonus:0,towerSpeed:0,
- spawnCd:0,waveLeft:0,spawned:0,waveTotal:0,builds:[],enemies:[],shots:[],pickups:[],particles:[],
+ spawnCd:0,waveLeft:0,spawned:0,waveTotal:0,siegeMode:false,supportWaves:0,supportStage:0,supportQueued:0,supportSpawned:0,supportCd:0,builds:[],enemies:[],shots:[],pickups:[],particles:[],
  villagers:[],economy:[],guards:[],enemyShots:[],hazards:[],villagerGoal:1,rescued:0,lost:0,totalRescued:0,settlementTier:0,villageIncomeTimer:15,
  dashCd:0,dashTime:0,volleyCd:0,lastTime:0,waveWait:0,betweenWaves:false,paused:false,waveEvent:'normal',miniTimer:0,uiCd:0};
 let facing=new THREE.Vector3(0,0,-1),movement=new THREE.Vector2(0,0),lastToast=0;
@@ -1139,7 +1183,7 @@ const eventLabels={
  normal:'🛡️ დაიცავი ციხე და სოფელი',
  rush:'⚡ სწრაფი მტრის ნაკადი!',
  archers:'🏹 მტრის მშვილდოსნები!',
- siege:'🔥 მძიმე ალყა!',
+ siege:'🔥 დიდი ალყა • მტრის ახალი რაზმები!',
  captain:'👑 კაპიტანი და ელიტური ჯარი!'
 };
 function launchEnemyArrow(enemy,targetType,targetObject=null){
@@ -1297,7 +1341,7 @@ function createSnapshot(){
    villageIncomeTimer:state.villageIncomeTimer,volleyCd:state.volleyCd,
    pos:[hero.group.position.x,hero.group.position.z],
    builds:state.builds.map(b=>({slot:slots.indexOf(b.slot),kind:b.kind,level:b.level,hp:b.hp,maxHp:b.maxHp})),
-   economy:state.economy.map(b=>({plot:b.plot.index,kind:b.kind,level:b.level,hp:b.hp,maxHp:b.maxHp,tick:b.tick,workers:b.workers||0,spawnTimer:b.spawnTimer||5})),
+   economy:state.economy.map(b=>({plot:b.plot.index,kind:b.kind,level:b.level,hp:b.hp,maxHp:b.maxHp,tick:b.tick,workers:b.workers||0,spawnTimer:b.spawnTimer??60,spawnPeriod:60})),
    guards:state.guards.map(g=>({role:g.role,hp:g.hp,maxHp:g.maxHp,damage:g.damage})),
    worldDeposits:{defense:slots.map(x=>x.deposit||0),village:economyPlots.map(x=>x.deposit||0),
      preferred:economyPlots.map(x=>x.preferredKind)}, 
@@ -1333,7 +1377,10 @@ function restoreSnapshot(){
    b.level=Math.max(1,Math.min(3,Number(item.level)||1));
    b.maxHp=Math.max(20,Number(item.maxHp)||b.maxHp);b.hp=Math.min(b.maxHp,Math.max(1,Number(item.hp)||b.maxHp));
    b.tick=Math.max(.2,Number(item.tick)||economyDefinitions[b.kind].interval);
-   b.workers=Math.max(0,Math.min(4,Number(item.workers)||0));b.spawnTimer=Math.max(.2,Number(item.spawnTimer)||5);
+   b.workers=Math.max(0,Math.min(4,Number(item.workers)||0));
+   // Alpha 1.04 saves had a five-second timer: migrate those to 60 seconds.
+   b.spawnTimer=b.kind==='barracks'&&item.spawnPeriod!==60?60:
+      Math.max(.2,Math.min(60,Number(item.spawnTimer)||60));
    if(b.level>1){
       const decor=makeEconomyModel(b.kind,b.level);b.group.add(decor);b.decor=decor;
       for(const child of [...b.group.children])if(child!==decor&&child!==b.hit&&child!==b.label){b.group.remove(child);disposeActor(child)};
@@ -1348,6 +1395,7 @@ function restoreSnapshot(){
     plot.deposit=Math.max(0,Math.min(500,Number(snap.worldDeposits.village?.[i])||0));
     const pref=snap.worldDeposits.preferred?.[i];
     if(economyDefinitions[pref])plot.preferredKind=pref;
+   paintEconomySign(plot);
   }
  }
  const maxGuards=Math.min(9,snap.guards.length);
@@ -1506,7 +1554,7 @@ function resetWorldPayment(){
  for(const fx of [...depositedCoins]){scene.remove(fx.group);fx.group.traverse(n=>{if(n.geometry)n.geometry.dispose()})};depositedCoins.length=0;
  $('worldBuildInfo').classList.add('hidden');$('contextActions').classList.add('hidden');
  for(const slot of slots)slot.deposit=0;
- for(const plot of economyPlots){plot.deposit=0;plot.preferredKind=economyNames[plot.index%economyNames.length]}
+ for(const plot of economyPlots){plot.deposit=0;plot.preferredKind=economyNames[plot.index%economyNames.length];paintEconomySign(plot)}
 }
 // Alpha 1.02: Build ONLY after a deliberate tap. Never auto-spend resources on approach.
 let siteChoicesOpen=false,troopMenuOpen=false,contextUiTimer=0,siteRecentlyBuilt=0,stickyTargetId=null,stickyUntil=0;
@@ -1602,6 +1650,7 @@ function selectSiteBuilding(kind){
  const plot=item.plot;
  if(plot.deposit){state.coins+=plot.deposit;plot.deposit=0}
  plot.preferredKind=kind;
+ paintEconomySign(plot);
  siteChoicesOpen=false;
  worldBillboardText='';
  saveCheckpoint(true);
@@ -1663,7 +1712,7 @@ function updateWorldConstruction(dt){
  const troopDock=$('troopDock'),siteDock=$('siteDock');
  troopDock.classList.toggle('hidden',!nearBarracks||!state.playing||state.dead||state.paused||state.betweenWaves);
  $('troopChoices').classList.toggle('hidden',!troopMenuOpen||!nearBarracks);
- $('troopCount').textContent=state.guards.length+'/9';
+ $('troopCount').textContent=state.guards.length+'/9'+(nearBarracks?' · '+Math.ceil(closestBarracks().spawnTimer||60)+'წ':'');
  const castleContext=!item&&nearCastle();
  if((!item&&!castleContext)||!canActNow()){
    $('siteWorkerBtn').classList.add('hidden');$('siteWeaponBtn').classList.add('hidden');
@@ -1748,7 +1797,7 @@ function updateWorldConstruction(dt){
    $('trainTroops').innerHTML='<b>⭐ გაწვრთენი ჯარი LV'+state.armyLevel+'/5</b>'+
       '<span class="cost">🪙'+cost.coins+' 🌲'+cost.wood+'</span>';
    $('trainTroops').disabled=state.armyLevel>=5||state.coins<cost.coins||state.wood<cost.wood;
-   $('troopDescription').textContent='🛡️ საკუთარი ჯარი • '+state.guards.length+'/9 • მონიშნე მეომარი';
+   $('troopDescription').textContent='🛡️ საკუთარი ჯარი • '+state.guards.length+'/9 • შემდეგი მცველი '+Math.ceil(barracks?.spawnTimer??60)+' წმ';
    $('formationBtn').textContent='🎖️ ბრძანება: '+formationNames[state.armyFormation||'follow'];
  }
 }
@@ -2325,15 +2374,15 @@ function bossTitleSprite(name,group,y=4.45){
  sprite.position.set(0,y,0);sprite.scale.set(4.2,1,1);group.add(sprite);
  return sprite;
 }
-function makeEnemy(){
-const boss=state.wave%4===0&&state.spawned===state.waveTotal-1;
+function makeEnemy(reinforcement=false){
+const boss=!reinforcement&&state.wave%4===0&&state.spawned===state.waveTotal-1;
 const era=eraForWave(state.wave),mongol=era.era==='mongol';
 const shah=boss&&!mongol&&state.wave%8===0;
 const general=boss&&!shah;
-const ram=state.wave>=5&&state.wave%5===0&&state.spawned===state.waveTotal-1;
-const roll=Math.random(),cavalry=mongol&&!boss&&!ram&&roll>.81,
- archer=state.wave>=2&&!cavalry&&roll<(state.waveEvent==='archers'?.32:.15)&&!boss&&!ram,
-  hard=!cavalry&&!archer&&!ram&&state.wave>=3&&roll<(state.waveEvent==='siege'?.31:.145),
+const ram=!reinforcement&&state.wave>=5&&state.wave%5===0&&state.spawned===state.waveTotal-1;
+const roll=Math.random(),cavalry=mongol&&!boss&&!ram&&roll>(reinforcement?.69:.81),
+ archer=state.wave>=2&&!cavalry&&roll<(reinforcement?.28:state.waveEvent==='archers'?.32:.15)&&!boss&&!ram,
+  hard=!cavalry&&!archer&&!ram&&state.wave>=3&&roll<(reinforcement?.45:state.waveEvent==='siege'?.38:.17),
   fast=!cavalry&&!archer&&!ram&&state.wave>=2&&roll>.64;
 const p=person(ram?0x765c4b:shah?0x753f64:boss?0x945c42:cavalry?0x8e583f:
   mongol?archer?0x9b754b:hard?0x685044:fast?0x936b41:0xa26b3d:
@@ -2405,8 +2454,12 @@ if(boss){
    mongol?'🏇 მონღოლთა გენერალი მოახლოვდა!':'👑 სპარსეთის გენერალი გამოჩნდა!');
 }
 const lanes=[0,Math.PI/4,Math.PI/2,Math.PI*3/4,Math.PI,Math.PI*5/4,Math.PI*3/2,Math.PI*7/4];
-const lane=lanes[(Math.floor(state.spawned/4)+Math.floor(state.wave/2))%lanes.length];
-const angle=lane+rand(-.22,.22),radius=rand(28+Math.min(12,state.wave*.45),35+Math.min(15,state.wave*.42));
+const lane=reinforcement?
+  lanes[(state.supportStage*2+Math.floor(state.supportSpawned/3)+3)%lanes.length]:
+  lanes[(Math.floor(state.spawned/4)+Math.floor(state.wave/2))%lanes.length];
+const angle=lane+rand(-.22,.22),
+ radius=reinforcement?rand(28,35):
+   rand(28+Math.min(12,state.wave*.45),35+Math.min(15,state.wave*.42));
 p.group.position.set(Math.cos(angle)*radius,0,Math.sin(angle)*radius);scene.add(p.group);
 // Strong enemy = 2 direct arrows; giant ram/general = 5; super-boss = 10.
 const arrowHits=shah?10:(ram||boss)?5:hard?2:1;
@@ -2416,8 +2469,8 @@ const enemyBar=new THREE.Group();enemyBar.position.y=ram?4.00:(boss&&(general||s
 const barBack=cube(enemyBar,boss||ram?1.25:.9,.10,.06,materials.dark);
 const barFront=cube(enemyBar,boss||ram?1.23:.88,.075,.07,boss||ram?materials.gold:materials.red,0,0,.03);
 barBack.castShadow=false;barFront.castShadow=false;
-state.enemies.push({barFront,group:p.group,body:p.body,hp,maxHp:hp,arrowHits,speed:ram?1.45:shah?1.92:boss?2.25:cavalry?rand(3.5,4.4):archer?2.25:hard?2.10:fast?rand(3.65,4.45):rand(2.4,2.95)+Math.min(.85,state.wave*.029),cd:rand(0,.5),hit:0,reward:ram?105:boss?65:archer?14:hard?20:fast?10:8,type:ram?'ram':boss?'captain':cavalry?'cavalry':archer?'archer':hard?'armored':fast?'raider':'soldier',faction:era.era,rank:shah?'shah':general?'general':'soldier',specialCd:rand(1.4,3.2)});
-state.spawned++;}
+state.enemies.push({barFront,group:p.group,body:p.body,hp,maxHp:hp,arrowHits,reinforcement,speed:ram?1.45:shah?1.92:boss?2.25:cavalry?rand(3.5,4.4):archer?2.25:hard?2.10:fast?rand(3.65,4.45):rand(2.4,2.95)+Math.min(.85,state.wave*.029),cd:rand(0,.5),hit:0,reward:ram?105:boss?65:archer?14:hard?20:fast?10:8,type:ram?'ram':boss?'captain':cavalry?'cavalry':archer?'archer':hard?'armored':fast?'raider':'soldier',faction:era.era,rank:shah?'shah':general?'general':'soldier',specialCd:rand(1.4,3.2)});
+if(reinforcement)state.supportSpawned++;else state.spawned++;}
 function coin(x,z,amount=8){const g=new THREE.Group();const disk=cyl(g,.3,.3,.09,materials.gold,0,.55,0);disk.rotation.z=Math.PI/2;g.position.set(x,0,z);scene.add(g);state.pickups.push({group:g,time:0,amount:Math.random()<.14?amount+5:amount})}
 function hitEnemy(e,dmg){audio.play('impact',e.hp<=dmg?.54:.38);
   const impact=e.group.position;
@@ -2548,7 +2601,40 @@ function build(kind,prepaid=false){
 function upgrade(){if(!state.playing||state.betweenWaves)return;const cost=60+(state.level-1)*35;if(state.coins<cost)return;state.coins-=cost;state.level++;state.damage+=7;state.maxHp+=18;state.hp=Math.min(state.maxHp,state.hp+35);state.maxFortHP+=25;state.fortHP=Math.min(state.maxFortHP,state.fortHP+55);hero.group.scale.setScalar(1.10+Math.min(state.level-1,4)*.045);audio.play('upgrade');showToast('⬆️ გმირი გაძლიერდა! დონე '+state.level);ui()}
 function heal(){if(!state.playing||state.betweenWaves||state.coins<35||state.hp>=state.maxHp)return;state.coins-=35;state.hp=Math.min(state.maxHp,state.hp+30);audio.play('coin',.45);showToast('❤️ სიცოცხლე აღდგენილია');ui()}
 function dash(){if(state.dashCd>0||!state.playing||state.betweenWaves)return;state.dashTime=.22;state.dashCd=3;audio.play('dash');showToast('⚡ სწრაფი მოძრაობა')}
-function beginWave(){state.betweenWaves=false;showChapter();state.waveEvent=decideWaveEvent(state.wave);state.eventBannerTime=4.2;$('eventBadge').textContent=eventLabels[state.waveEvent];$('eventBadge').classList.remove('hidden');spawnVillagers();state.waveTotal=18+state.wave*6;state.waveLeft=state.waveTotal;state.spawned=0;state.spawnCd=.35;state.waveWait=0;audio.play('wave',.52);showToast('🇬🇪 '+eraForWave(state.wave).title+' • ტალღა '+state.wave);ui()}
+function beginWave(){
+ state.betweenWaves=false;showChapter();
+ state.waveEvent=decideWaveEvent(state.wave);
+ state.eventBannerTime=4.2;
+ $('eventBadge').textContent=eventLabels[state.waveEvent];
+ $('eventBadge').classList.remove('hidden');
+ spawnVillagers();
+ // Every fifth wave is a full-scale siege with flank reinforcements.
+ state.siegeMode=state.wave>=5&&state.wave%5===0;
+ state.supportWaves=state.siegeMode?3:state.wave>=9?2:state.wave>=3?1:0;
+ state.supportStage=0;state.supportQueued=0;state.supportSpawned=0;state.supportCd=0;
+ state.waveTotal=18+state.wave*6+(state.siegeMode?14+Math.min(10,Math.floor(state.wave/5)*3):0);
+ state.waveLeft=state.waveTotal;state.spawned=0;state.spawnCd=.35;state.waveWait=0;
+ audio.play('wave',.52);
+ showToast(state.siegeMode?'🔥 დიდი ალყა — მოემზადე!':
+   '🇬🇪 '+eraForWave(state.wave).title+' • ტალღა '+state.wave);
+ ui();
+}
+function scheduleEnemyReinforcements(){
+ if(state.supportStage>=state.supportWaves||state.waveLeft<=0)return;
+ const marks=state.supportWaves===1?[.43]:
+  state.supportWaves===2?[.33,.70]:[.25,.54,.82];
+ if(state.spawned<Math.max(2,Math.floor(state.waveTotal*marks[state.supportStage])))return;
+ state.supportStage++;
+ const amount=state.siegeMode?8+Math.min(5,Math.floor(state.wave/5)):
+    state.wave>=9?7:5;
+ state.supportQueued+=amount;
+ state.supportCd=.15;
+ state.eventBannerTime=3.4;
+ $('eventBadge').textContent='⚠️ მტრის დამხმარე რაზმი • +'+amount;
+ $('eventBadge').classList.remove('hidden');
+ showToast('⚔️ მტერს დახმარება მოუვიდა! +'+amount+' ჯარისკაცი');
+ audio.play('wave',.40);
+}
 
 function reset(){for(const name of ['enemies','builds','shots','pickups','particles','villagers','economy','guards','enemyShots','hazards','effects']){for(const item of state[name]){
  if(name==='shots'||name==='enemyShots')disposeProjectile(item.mesh);
@@ -2568,7 +2654,7 @@ selectedSlot=null;selectedBuild=null;selectedEconomy=null;selectedEconomyPlot=nu
   $('rewardOverlay').classList.add('hidden');$('pauseOverlay').classList.add('hidden');changeBuildMode('defense');
 Object.assign(state,{playing:true,dead:false,coins:185,wood:75,meteorCd:0,score:0,combo:0,comboTimer:0,armyLevel:1,armyFormation:'follow',weaponLevel:0,castleLevel:1,cryCd:0,battleCryTime:0,missionStep:0,missionRewards:0,totalConstruction:0,recruited:0,missionTicker:.1,hp:130,maxHp:130,fortHP:720,maxFortHP:720,
  wave:1,kills:0,level:1,damage:35,attackCd:0,shotInterval:.38,towerBonus:0,towerSpeed:0,
- spawnCd:0,waveLeft:0,spawned:0,waveTotal:0,dashCd:0,dashTime:0,volleyCd:0,
+ spawnCd:0,waveLeft:0,spawned:0,waveTotal:0,siegeMode:false,supportWaves:0,supportStage:0,supportQueued:0,supportSpawned:0,supportCd:0,dashCd:0,dashTime:0,volleyCd:0,
  villagerGoal:1,rescued:0,lost:0,totalRescued:0,settlementTier:0,villageIncomeTimer:15,betweenWaves:false,paused:false,waveEvent:'normal',miniTimer:0,uiCd:0,waveWait:0});
 hero.group.position.set(0,0,3.1);hero.group.scale.setScalar(1.10);previousAimTarget=null;facing.set(0,0,-1);$('intro').classList.add('hidden');$('over').classList.add('hidden');$('guide').classList.add('hidden');$('center').style.pointerEvents='none';beginWave();ui()}
 function endGame(reason='hero'){if(state.dead)return;saveRecord(Math.max(0,state.wave-1));$('rewardOverlay').classList.add('hidden');audio.play('defeat');state.dead=true;state.playing=false;$('result').textContent=(reason==='castle'?'🏰 ციხესიმაგრე დაინგრა! ':'🏹 გმირი დამარცხდა! ')+'მიაღწიე '+state.wave+'-ე ტალღამდე • დაამარცხე '+state.kills+' მტერი • ააშენე '+state.builds.length+' ნაგებობა';$('over').classList.remove('hidden');$('center').style.pointerEvents='auto'}
@@ -2603,15 +2689,20 @@ if(target && state.attackCd<=0){
   if(hero.body.userData.rig){hero.body.userData.rig.draw=0;hero.body.userData.rig.shotFlash=1;}
 }else{}
 animateArcher(hero.body,now,!!target,dt,l>.05,state.dashTime>0);
+const concurrentMax=innerWidth<760?46:75;
+scheduleEnemyReinforcements();
+state.supportCd=Math.max(0,(state.supportCd||0)-dt);
+if(state.supportQueued>0&&state.supportCd<=0&&state.enemies.length<concurrentMax-2){
+ makeEnemy(true);state.supportQueued--;state.supportCd=.24;
+}
 if(state.waveLeft>0){
  state.spawnCd-=dt;
- const concurrentMax=innerWidth<760?46:75;
  if(state.spawnCd<=0&&state.enemies.length<concurrentMax){
    makeEnemy();state.waveLeft--;
    state.spawnCd=Math.max(.14,(.294-state.wave*.008)*(state.waveEvent==='rush'?.72:1));
  }
 }
-else if(state.enemies.length===0){state.waveWait+=dt;
+else if(state.enemies.length===0&&state.supportQueued===0&&state.supportStage>=state.supportWaves){state.waveWait+=dt;
   if(state.waveWait>1.9)presentWaveRewards();
 }
 for(const enemy of [...state.enemies]){
@@ -2792,7 +2883,7 @@ for(const item of [...state.pickups]){
  if(dist2(item.group.position,pos)<1.7){audio.play('coin',.27);state.coins+=item.amount;for(let i=0;i<4;i++)particle(item.group.position.x,.6,item.group.position.z,0xffdf7f);scene.remove(item.group);state.pickups.splice(state.pickups.indexOf(item),1)}}
 for(const item of [...state.particles]){item.life-=dt;item.mesh.position.x+=item.vx*dt;item.mesh.position.y+=item.vy*dt;item.mesh.position.z+=item.vz*dt;item.vy-=9*dt;item.mesh.material.opacity=Math.max(0,item.life/.55);if(item.life<=0){scene.remove(item.mesh);item.mesh.geometry.dispose();item.mesh.material.dispose();state.particles.splice(state.particles.indexOf(item),1)}}
 for(const plot of economyPlots)if(!plot.occupied)
-    plot.group.visible=dist2(plot.group.position,pos)<25;
+    plot.group.visible=dist2(plot.group.position,pos)<((plot.preferredKind==='barracks'||plot.preferredKind==='forge')?57:29);
 for(const econ of state.economy)if(econ.label){
     econ.label.visible=selectedEconomy===econ&&dist2(econ.group.position,pos)<15;
   }
@@ -2911,7 +3002,7 @@ camera.position.copy(cameraFollowPosition(hero.group.position));
 camera.lookAt(hero.group.position.x,1.05,hero.group.position.z);showRecord();hasCheckpoint();ui();updateMissions();drawMiniMap();requestAnimationFrame(frame);
 
 if(location.pathname.toLowerCase().includes('developer')){
-const panel=document.createElement('aside');panel.id='devPanel';panel.innerHTML='<div class="devtitle">🛠️ DEVELOPER • GEORGIA 1.01 • ნარიყალა</div><button id="devMoney">🪙 +1000</button><button id="devWood">🌲 +100</button><button id="devGuard">🛡️ მცველი</button><button id="devArcher">🏹 მოკავშირე</button><button id="devHealer">💚 მკურნალი</button><button id="devSiege">🪵 ტარანი</button><button id="devHorde">🔥 დიდი ტალღა</button><button id="devBuild">🎯 ბალისტა</button><button id="devSave">💾 Save</button><button id="devGod">🛡️ უკვდავება OFF</button><button id="devSkip">⏩ შემდეგი ტალღა</button><button id="devFull">❤️ შევსება</button><button id="devWalls">🏰 ყველა ნაგებობა</button>';document.body.append(panel);
+const panel=document.createElement('aside');panel.id='devPanel';panel.innerHTML='<div class="devtitle">🛠️ DEVELOPER • GEORGIA 1.05 • ნარიყალა</div><button id="devMoney">🪙 +1000</button><button id="devWood">🌲 +100</button><button id="devGuard">🛡️ მცველი</button><button id="devArcher">🏹 მოკავშირე</button><button id="devHealer">💚 მკურნალი</button><button id="devSiege">🪵 ტარანი</button><button id="devHorde">🔥 დიდი ტალღა</button><button id="devBuild">🎯 ბალისტა</button><button id="devSave">💾 Save</button><button id="devGod">🛡️ უკვდავება OFF</button><button id="devSkip">⏩ შემდეგი ტალღა</button><button id="devFull">❤️ შევსება</button><button id="devWalls">🏰 ყველა ნაგებობა</button>';document.body.append(panel);
 panel.classList.add('dev-closed');
 const toggle=document.createElement('button');
 toggle.id='devToggle';toggle.type='button';
@@ -2938,11 +3029,11 @@ $('devBuild').onclick=()=>{
 };
 $('devSave').onclick=()=>saveCheckpoint();
 $('devGod').onclick=()=>{const enabled=state.maxHp<5000;if(enabled){state.maxHp=99999;state.hp=99999;}else{state.maxHp=100+(state.level-1)*18;state.hp=state.maxHp}$('devGod').textContent='🛡️ უკვდავება '+(enabled?'ON':'OFF');ui();};
-$('devSkip').onclick=()=>{if(!state.playing)return;for(const e of state.enemies){scene.remove(e.group);disposeActor(e.group)}state.enemies.length=0;state.waveLeft=0;state.waveWait=2.5;showToast('⏩ შემდეგი ტალღა')};
+$('devSkip').onclick=()=>{if(!state.playing)return;for(const e of state.enemies){scene.remove(e.group);disposeActor(e.group)}state.enemies.length=0;state.waveLeft=0;state.supportQueued=0;state.supportStage=state.supportWaves;state.waveWait=2.5;showToast('⏩ შემდეგი ტალღა')};
 $('devFull').onclick=()=>{state.hp=state.maxHp;state.fortHP=state.maxFortHP;ui();showToast('❤️ შევსებულია')};
 $('devWalls').onclick=()=>{if(!state.playing)return;state.coins+=3000;for(const slot of [...slots]){if(!slot.occupied){hero.group.position.set(slot.group.position.x,0,slot.group.position.z+2);selectedSlot=slot;build(slot.kind)}}hero.group.position.set(2,0,6.5);ui()};
 }
 
 if(location.pathname.toLowerCase().includes('developer'))window.__GEORGIA_DEV={state,hero,slots,audio,economyPlots,resourceNodes,buildEconomy,upgradeEconomy,tickEconomy,
-    recruitGuard,updateGuards,makeEnemy,hitEnemy,shoot,beginWave,bossWarning,saveCheckpoint,restoreSnapshot,decideWaveEvent,battleCry,upgradeCastle,trainArmy,missionProgress,meteorStorm,setCameraZoom,identifyWorldItem,updateWorldConstruction,resetWorldPayment,depositedCoins,depositSpotRing,
+    recruitGuard,updateGuards,makeEnemy,scheduleEnemyReinforcements,paintEconomySign,hitEnemy,shoot,beginWave,bossWarning,saveCheckpoint,restoreSnapshot,decideWaveEvent,battleCry,upgradeCastle,trainArmy,missionProgress,meteorStorm,setCameraZoom,identifyWorldItem,updateWorldConstruction,resetWorldPayment,depositedCoins,depositSpotRing,
     volley,chooseReward,spawnVillagers,presentWaveRewards,get selected(){return selectedBuild},upgradeStructure};

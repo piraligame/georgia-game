@@ -53,3 +53,7 @@ alpha104-*.cjs
 alpha104-*.png
 alpha104-*.py
 patch-alpha104-*.py
+
+alpha105-*.cjs
+alpha105-*.png
+patch-alpha105-*.py

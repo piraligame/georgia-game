@@ -1,9 +1,9 @@
 {
   "name": "georgia-game",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "private": true,
   "type": "module",
-  "description": "GEORGIA Narikala Alpha 1.04: low-zoom bottom terrain clipping fix, steady camera framing, and carefully harder enemy waves",
+  "description": "GEORGIA Narikala Alpha 1.05: named barracks/forge build markers, Georgian Gamers Guild Facebook menu, 60-second auto guards, enemy reinforcement squads and recurring great sieges",
   "scripts": {
     "start": "npx serve . -l 8080",
     "check": "node --check main.js"
