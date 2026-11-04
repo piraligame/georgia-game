@@ -24,7 +24,15 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 $('game').appendChild(renderer.domElement);
-const camera = new THREE.OrthographicCamera(-13,13,9,-9,.1,250);
+const camera = new THREE.OrthographicCamera(-13,13,9,-9,.1,260);
+let cameraZoom=.78; // Alpha 0.9 starts visibly farther from the battleground.
+function setCameraZoom(value){
+ cameraZoom=THREE.MathUtils.clamp(Number(value)||.78,.53,1.20);
+ resize();
+ if($('zoomLabel'))$('zoomLabel').textContent=Math.round(cameraZoom*100)+'%';
+ try{localStorage.setItem('georgia-zoom-v1',String(cameraZoom))}catch{}
+}
+try{const z=Number(localStorage.getItem('georgia-zoom-v1'));if(z>=.53&&z<=1.20)cameraZoom=z}catch{}
 const sun = new THREE.DirectionalLight(0xffedc6,2.1);
 sun.position.set(-17,35,14);
 sun.castShadow=true;
@@ -41,15 +49,15 @@ function cone(parent,r,h,material,x=0,y=0,z=0){return mesh(parent,new THREE.Cone
 function cyl(parent,top,bottom,h,material,x=0,y=0,z=0){return mesh(parent,new THREE.CylinderGeometry(top,bottom,h,8),material,x,y,z)}
 function rand(min,max){return min+Math.random()*(max-min)}
 function dist2(a,b){return Math.hypot(a.x-b.x,a.z-b.z)}
-const floor=mesh(scene,new THREE.PlaneGeometry(115,115),materials.grass);
+const floor=mesh(scene,new THREE.PlaneGeometry(150,150),materials.grass);
 floor.rotation.x=-Math.PI/2;floor.position.y=-.06;floor.castShadow=false;
 const patchMat=[
   new THREE.MeshBasicMaterial({color:0x98bb7d,transparent:true,opacity:.14,depthWrite:false,side:THREE.DoubleSide}),
   new THREE.MeshBasicMaterial({color:0x62975f,transparent:true,opacity:.12,depthWrite:false,side:THREE.DoubleSide}),
   new THREE.MeshBasicMaterial({color:0xbdaf7b,transparent:true,opacity:.09,depthWrite:false,side:THREE.DoubleSide})
 ];
-for(let i=0;i<110;i++){
-  const x=rand(-49,49),z=rand(-49,49);
+for(let i=0;i<170;i++){
+  const x=rand(-63,63),z=rand(-63,63);
   const patch=mesh(scene,new THREE.CircleGeometry(rand(.65,1.7),9),patchMat[i%3],x,-.044,z);
   patch.rotation.x=-Math.PI/2;patch.rotation.z=rand(0,6.28);
   patch.scale.set(rand(.5,1.85),rand(.65,1.55),1);
@@ -317,7 +325,17 @@ const heroMarker=cone(hero.group,.14,.27,new THREE.MeshBasicMaterial({
 // Fortress construction: fourteen wall sections and four corner archer towers.
 const slots=[];let selectedSlot=null,selectedBuild=null;
 
-function structureCost(b){if(!b||b.level>=4)return 0;return b.kind==='wall'?([0,32,54,78][b.level]):([0,48,78,110][b.level])}
+const defensePrices={wall:{coins:20,wood:0},tower:{coins:45,wood:0},
+ trap:{coins:28,wood:2},ballista:{coins:85,wood:10}};
+const defenseNames={wall:'🧱 კედელი',tower:'🏹 კოშკი',trap:'🪤 მახე',ballista:'🎯 ბალისტა'};
+function structureCost(b){
+ if(!b||b.level>=4)return 0;
+ const tiers={
+  wall:[0,32,54,78],tower:[0,48,78,110],
+  trap:[0,25,40,60],ballista:[0,68,98,135]
+ };
+ return tiers[b.kind]?.[b.level]||0;
+}
 function makeUpgradeTag(b){
  const canvas=document.createElement('canvas');canvas.width=320;canvas.height=122;
  const ctx=canvas.getContext('2d');ctx.clearRect(0,0,320,122);
@@ -330,15 +348,21 @@ function makeUpgradeTag(b){
  ctx.fillText(txt,70,67);
  const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;
  if(b.tag){b.tag.material.map.dispose();b.tag.material.map=texture;b.tag.material.needsUpdate=true;}
- else{const spr=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,transparent:true,depthTest:false,depthWrite:false}));spr.center.set(.5,.12);spr.scale.set(2.40,.92,1);spr.position.set(0,b.kind==='wall'?2.75:5.7,0);b.group.add(spr);b.tag=spr;}
+ else{const spr=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,transparent:true,depthTest:false,depthWrite:false}));spr.center.set(.5,.12);spr.scale.set(2.40,.92,1);spr.position.set(0,b.kind==='wall'?2.75:b.kind==='trap'?1.8:b.kind==='ballista'?4.3:5.7,0);b.group.add(spr);b.tag=spr;}
 }
 function decorateBuilding(b){
- if(b.decor){b.group.remove(b.decor);}
+ if(b.decor){b.group.remove(b.decor);disposeActor(b.decor);}
  const decor=new THREE.Group();b.group.add(decor);b.decor=decor;
  for(let i=1;i<b.level;i++){
    if(b.kind==='wall'){
      cube(decor,2.75,.11,.98,materials.gold,0,.42+i*.18,0);
-     for(const xx of [-1.06,1.06]){cube(decor,.18,.5,.18,materials.dark,xx,1.91+i*.06,.02);}
+     for(const xx of [-1.06,1.06])cube(decor,.18,.5,.18,materials.dark,xx,1.91+i*.06,.02);
+   }else if(b.kind==='trap'){
+     for(const xx of [-.60,0,.60])for(const zz of [-.60,0,.60])
+       cone(decor,.11,.20+i*.17,materials.gold,xx,.42+i*.04,zz);
+   }else if(b.kind==='ballista'){
+     cube(decor,1.45,.16,1.2,materials.gold,0,1.25+i*.06,0);
+     for(const side of [-1,1])cyl(decor,.21,.21,.15,materials.gold,side*.9,1.52+i*.08,.18);
    }else{
      cyl(decor,.91,.91,.10,materials.gold,0,2.10+i*.25,0);
      for(const xx of [-.9,.9])sphere(decor,.17,materials.gold,xx,3.85+i*.05,0);
@@ -352,17 +376,17 @@ function upgradeStructure(){
  const cost=structureCost(b);
  if(state.coins<cost){showToast('🪙 გასაძლიერებლად საჭიროა '+cost+' მონეტა');return}
  state.coins-=cost;b.level++;
- b.maxHp+=b.kind==='wall'?155:110;b.hp=Math.min(b.maxHp,b.hp+(b.kind==='wall'?185:140));
+ b.maxHp+=b.kind==='wall'?155:b.kind==='trap'?55:130;b.hp=Math.min(b.maxHp,b.hp+(b.kind==='wall'?185:140));
  decorateBuilding(b);makeUpgradeTag(b);
  for(let i=0;i<12;i++)particle(b.group.position.x,rand(.6,2),b.group.position.z,0xffdc80);
- audio.play('upgrade');showToast((b.kind==='wall'?'🧱 კედელი':'🏹 კოშკი')+' — დონე '+b.level+'!');
+ audio.play('upgrade');showToast(defenseNames[b.kind]+' — დონე '+b.level+'!');
  ui();
 }
 function createSlot(kind,x,z,rotation=0){
   const group=new THREE.Group();group.position.set(x,0,z);scene.add(group);
   const ghostLines=new THREE.Group();group.add(ghostLines);
   const markerMat=new THREE.MeshBasicMaterial({
-    color:kind==='wall'?0xebd49f:0x96d7c1,transparent:true,opacity:.68,depthWrite:false,depthTest:true
+    color:kind==='wall'?0xebd49f:kind==='trap'?0xf0ad76:kind==='ballista'?0xb8b0e0:0x96d7c1,transparent:true,opacity:.68,depthWrite:false,depthTest:true
   });
   for(const x of [-1,1])for(const z of [-1,1]){
     const hx=cube(ghostLines,.34,.022,.066,markerMat,x*.67,.052,z*.86);
@@ -377,6 +401,13 @@ function createSlot(kind,x,z,rotation=0){
   if(kind==='wall'){
     const c=cube(ghost,1.4,.20,.53,materials.wall,0,.22,0);c.castShadow=false;
     for(const xx of [-.48,0,.48]){const b=cube(ghost,.28,.24,.57,materials.wall,xx,.4,0);b.castShadow=false}
+  }else if(kind==='trap'){
+    const bed=cube(ghost,1.5,.10,1.5,materials.wood,0,.11,0);bed.castShadow=false;
+    for(const xx of [-.5,0,.5])for(const zz of [-.5,0,.5])cone(ghost,.10,.27,materials.wall,xx,.33,zz);
+  }else if(kind==='ballista'){
+    cube(ghost,1.1,.20,1.5,materials.wood,0,.38,0);
+    cyl(ghost,.24,.3,1,materials.wood,0,.62,0);
+    cube(ghost,1.1,.12,.12,materials.dark,0,1.0,-.1);
   }else{
     const c=cyl(ghost,.35,.47,.48,materials.wood,0,.27,0);c.castShadow=false;
     const cap=cone(ghost,.59,.64,materials.roof,0,.83,0);cap.castShadow=false;
@@ -391,6 +422,15 @@ for(const x of [-4.9,4.9])createSlot('wall',x,8);
 for(const z of [-4.9,-1.65,1.65,4.9])createSlot('wall',-8,z,Math.PI/2);
 for(const z of [-4.9,-1.65,1.65,4.9])createSlot('wall',8,z,Math.PI/2);
 for(const x of [-8,8])for(const z of [-8,8])createSlot('tower',x,z);
+// New outer defense ring: 28 outer walls + 8 additional archer stations.
+for(const x of [-12,-8,-4,0,4,8,12])for(const z of [-18,18])createSlot('wall',x,z);
+for(const z of [-12,-8,-4,0,4,8,12])for(const x of [-18,18])createSlot('wall',x,z,Math.PI/2);
+for(const x of [-18,18])for(const z of [-18,18])createSlot('tower',x,z);
+for(const x of [-23,23])createSlot('tower',x,0);
+for(const z of [-23,23])createSlot('tower',0,z);
+// New advanced defense builds, no collision with existing saved slot indices.
+for(const x of [-11,0,11])for(const z of [-13,13])createSlot('trap',x,z);
+for(const x of [-23,23])for(const z of [-10,10])createSlot('ballista',x,z);
 const slotRaycaster=new THREE.Raycaster();
 renderer.domElement.addEventListener('pointerdown',event=>{
   if(!state.playing||state.dead)return;
@@ -404,11 +444,11 @@ renderer.domElement.addEventListener('pointerdown',event=>{
     if(obj.userData.building){
       const b=obj.userData.building;
       if(dist2(hero.group.position,b.group.position)>13){showToast('🚶 მიუახლოვდი ნაგებობას');return}
-      selectedBuild=b;selectedSlot=null;selectedEconomy=null;selectedEconomyPlot=null;showToast((b.kind==='wall'?'🧱 გალავანი':'🏹 კოშკი')+' • დონე '+b.level+' • 🪙 '+structureCost(b));ui();return;
+      selectedBuild=b;selectedSlot=null;selectedEconomy=null;selectedEconomyPlot=null;showToast(defenseNames[b.kind]+' • დონე '+b.level+' • 🪙 '+structureCost(b));ui();return;
     }
     const slot=obj.userData.slot;
     if(dist2(hero.group.position,slot.group.position)>12){showToast('🚶 მიუახლოვდი სამშენებლო ადგილს');return}
-    selectedSlot=slot;selectedBuild=null;selectedEconomy=null;showToast(slot.kind==='wall'?'🧱 მონიშნულია კედლის ადგილი':'🏹 მონიშნულია მშვილდოსნის კოშკი');ui();
+    selectedSlot=slot;selectedBuild=null;selectedEconomy=null;showToast('მონიშნულია: '+defenseNames[slot.kind]);ui();
   }
 });
 function getBuildSlot(kind){
@@ -420,6 +460,9 @@ function animateSlots(time){
   for(const slot of slots){
     if(slot.occupied)continue;
     const active=selectedSlot===slot;
+    const distance=dist2(slot.group.position,hero.group.position);
+    slot.group.visible=distance<23||active;
+    if(!slot.group.visible)continue;
     const pulse=active?1.18:1+.025*Math.sin(time*.004+slot.group.position.z);
     slot.ring.scale.setScalar(pulse);
     for(const mark of slot.ring.children){mark.material.opacity=active?.9:(.45+.09*Math.sin(time*.002+slot.group.position.x))}
@@ -435,7 +478,11 @@ const economyDefinitions={
 const economyPlots=[],economyNames=['farm','lumber','workshop','barracks'];
 let selectedEconomyPlot=null,selectedEconomy=null,buildMode='defense';
 const economyMarkerMat=new THREE.MeshBasicMaterial({color:0xbbe2b7,transparent:true,opacity:.58,depthWrite:false});
-for(const [i,coords] of [[-12.0,0],[-12.5,11],[0,12],[11.5,0],[12,-11],[0,-12]].entries()){
+for(const [i,coords] of [
+ [-12,0],[-12.5,11],[0,12],[11.5,0],[12,-11],[0,-12],
+ [-26,-8],[-26,8],[26,-8],[26,8],[-12,-26],[12,-26],[-12,26],[12,26],
+ [-27,-22],[27,-22],[-27,22],[27,22]
+].entries()){
  const g=new THREE.Group();g.position.set(coords[0],0,coords[1]);scene.add(g);
  const marker=new THREE.Group();g.add(marker);
  for(const x of [-1,1])for(const z of [-1,1]){
@@ -551,7 +598,7 @@ function upgradeEconomy(){
  if(b.decor)parent.remove(b.decor);
  parent.add(newDecor);b.decor=newDecor;
  // Hide first-build decorative meshes to avoid overlapping roof shapes.
- for(const child of oldModel){if(child!==b.hit&&child!==b.label&&child!==b.decor)child.visible=false}
+ for(const child of oldModel){if(child!==b.hit&&child!==b.label&&child!==b.decor){parent.remove(child);disposeActor(child)}}
  makeEconomyLabel(b);audio.play('upgrade');showToast(economyDefinitions[b.kind].name+' LV '+b.level);
  ui();
 }
@@ -606,8 +653,8 @@ function changeBuildMode(mode){
   $('armyTab').classList.toggle('active',mode==='army');
  ui();
 }
-const state={playing:false,dead:false,coins:80,wood:35,score:0,combo:0,comboTimer:0,armyLevel:1,castleLevel:1,cryCd:0,battleCryTime:0,missionStep:0,missionRewards:0,totalConstruction:0,recruited:0,missionTicker:.1,hp:100,maxHp:100,fortHP:500,maxFortHP:500,
- wave:1,kills:0,level:1,damage:24,attackCd:0,shotInterval:.43,towerBonus:0,towerSpeed:0,
+const state={playing:false,dead:false,coins:175,wood:65,meteorCd:0,effects:[],score:0,combo:0,comboTimer:0,armyLevel:1,castleLevel:1,cryCd:0,battleCryTime:0,missionStep:0,missionRewards:0,totalConstruction:0,recruited:0,missionTicker:.1,hp:115,maxHp:115,fortHP:680,maxFortHP:680,
+ wave:1,kills:0,level:1,damage:30,attackCd:0,shotInterval:.41,towerBonus:0,towerSpeed:0,
  spawnCd:0,waveLeft:0,spawned:0,waveTotal:0,builds:[],enemies:[],shots:[],pickups:[],particles:[],
  villagers:[],economy:[],guards:[],enemyShots:[],hazards:[],villagerGoal:1,rescued:0,lost:0,totalRescued:0,settlementTier:0,villageIncomeTimer:15,
  dashCd:0,dashTime:0,volleyCd:0,lastTime:0,waveWait:0,betweenWaves:false,paused:false,waveEvent:'normal',miniTimer:0,uiCd:0};
@@ -858,15 +905,16 @@ function updateResourceNodes(now,dt){
 }
 // Checkpoints: explicit & automatic, separate Player and Developer games.
 const developerSave=location.pathname.toLowerCase().includes('developer');
-const checkpointKey=developerSave?'georgia-alpha08-developer-save':'georgia-alpha08-player-save';
+const checkpointKey=developerSave?'georgia-alpha09-developer-save':'georgia-alpha09-player-save';
+const previousCheckpointKey=developerSave?'georgia-alpha08-developer-save':'georgia-alpha08-player-save';
 const legacyCheckpointKey=developerSave?'georgia-alpha07-developer-save':'georgia-alpha07-player-save';
 let restartArmed=false;
 function loadSnapshot(){
  try{
    let data=null;
-   for(const key of [checkpointKey,legacyCheckpointKey]){
+   for(const key of [checkpointKey,previousCheckpointKey,legacyCheckpointKey]){
      try{data=JSON.parse(localStorage.getItem(key)||'null')}catch{data=null}
-     if(data&&(data.version===7||data.version===8)&&Number.isInteger(data.wave)&&
+     if(data&&[7,8,9].includes(data.version)&&Number.isInteger(data.wave)&&
        data.wave>=1&&data.wave<=250&&Array.isArray(data.builds)&&
        Array.isArray(data.economy)&&Array.isArray(data.guards))return data;
    }
@@ -880,9 +928,9 @@ function hasCheckpoint(){
 }
 function createSnapshot(){
  return{
-   version:8,created:new Date().toISOString(),
+   version:9,created:new Date().toISOString(),
    castleLevel:state.castleLevel,armyLevel:state.armyLevel,cryCd:state.cryCd,
-   score:state.score,missionStep:state.missionStep,missionRewards:state.missionRewards,
+   score:state.score,meteorCd:state.meteorCd,missionStep:state.missionStep,missionRewards:state.missionRewards,
    totalConstruction:state.totalConstruction,recruited:state.recruited,
    wave:state.wave,kills:state.kills,coins:state.coins,wood:state.wood,
    hp:state.hp,maxHp:state.maxHp,fortHP:state.fortHP,maxFortHP:state.maxFortHP,
@@ -909,7 +957,7 @@ function restoreSnapshot(){
  // Build castle walls and towers first. Restore them without subtracting saved resources.
  const resources={coins:snap.coins,wood:snap.wood};
  state.coins=999999;state.wood=999999;
- for(const item of snap.builds.slice(0,18)){
+ for(const item of snap.builds.slice(0,slots.length)){
    const slot=slots[item.slot];
    if(!slot||slot.occupied||slot.kind!==item.kind)continue;
    hero.group.position.copy(slot.group.position);selectedSlot=slot;
@@ -919,7 +967,7 @@ function restoreSnapshot(){
    b.maxHp=Math.max(10,Number(item.maxHp)||b.maxHp);b.hp=Math.min(b.maxHp,Math.max(1,Number(item.hp)||b.maxHp));
    decorateBuilding(b);makeUpgradeTag(b);
  }
- for(const item of snap.economy.slice(0,6)){
+ for(const item of snap.economy.slice(0,economyPlots.length)){
    const plot=economyPlots[item.plot];if(!plot||plot.occupied||!economyDefinitions[item.kind])continue;
    if(!buildEconomy(item.kind,plot,true))continue;
    const b=state.economy[state.economy.length-1];
@@ -928,7 +976,7 @@ function restoreSnapshot(){
    b.tick=Math.max(.2,Number(item.tick)||economyDefinitions[b.kind].interval);
    if(b.level>1){
       const decor=makeEconomyModel(b.kind,b.level);b.group.add(decor);b.decor=decor;
-      for(const child of b.group.children)if(child!==decor&&child!==b.hit&&child!==b.label)child.visible=false;
+      for(const child of [...b.group.children])if(child!==decor&&child!==b.hit&&child!==b.label){b.group.remove(child);disposeActor(child)};
    }
    makeEconomyLabel(b);
  }
@@ -949,7 +997,7 @@ function restoreSnapshot(){
    score:Math.max(0,snap.score||0),
    armyLevel:Math.max(1,Math.min(5,snap.armyLevel||1)),
    castleLevel:Math.max(1,Math.min(5,snap.castleLevel||1)),
-   cryCd:Math.max(0,snap.cryCd||0),battleCryTime:0,
+   cryCd:Math.max(0,snap.cryCd||0),meteorCd:Math.max(0,snap.meteorCd||0),battleCryTime:0,
    missionStep:Math.max(0,snap.missionStep||0),
    missionRewards:Math.max(0,snap.missionRewards||0),
    totalConstruction:Math.max(0,snap.totalConstruction??(snap.builds.length+snap.economy.length)),
@@ -975,8 +1023,8 @@ function restoreSnapshot(){
  changeBuildMode('defense');
  $('pauseOverlay').classList.add('hidden');
  state.paused=false;
- saveCheckpoint(true); // Migrate Alpha 0.7 files without deleting the legacy backup.
- showToast('💾 შენახული სამეფო აღდგენილია • ტალღა '+state.wave);
+ saveCheckpoint(true); // Migrate Alpha 0.7/0.8 files, keeping the older saves intact.
+ showToast('💾 Alpha 0.9 • შენახული სამეფო აღდგენილია • ტალღა '+state.wave);
  ui();updateMissions();return true;
 }
 function openPause(){
@@ -1067,7 +1115,7 @@ function recruitGuard(role='sword',restoring=false){
  ui();return true;
 }
 function removeGuard(g){
- scene.remove(g.group);
+ scene.remove(g.group);disposeActor(g.group);
  const idx=state.guards.indexOf(g);if(idx>=0)state.guards.splice(idx,1);
  for(let i=0;i<5;i++)particle(g.group.position.x,1,g.group.position.z,0x90d5da);
  showToast('⚠️ ერთი მცველი დაეცა');
@@ -1349,10 +1397,76 @@ function updateMissions(){
    ' • '+Math.min(info.current,info.target)+'/'+info.target;
  $('missionRewards').textContent='🪙 '+state.missionRewards;
 }
+// Firestorm: a high-impact crowd control attack with an original meteor/arrow effect.
+function meteorStorm(){
+ if(!state.playing||state.paused||state.dead||state.betweenWaves||state.meteorCd>0)return;
+ const nearby=state.enemies.filter(e=>dist2(hero.group.position,e.group.position)<21)
+    .sort((a,b)=>dist2(hero.group.position,a.group.position)-dist2(hero.group.position,b.group.position));
+ if(!nearby.length){showToast('🔥 მტრები ჯერ ახლოს არ არიან');return}
+ const center=nearby[0].group.position.clone();
+ state.meteorCd=16;
+ const radius=5.5;
+ const enemies=state.enemies.filter(e=>dist2(center,e.group.position)<radius);
+ for(const e of [...enemies]){
+   const damage=Math.round(52+state.level*9+state.armyLevel*3);
+   hitEnemy(e,damage);
+   if(state.enemies.includes(e))e.stun=Math.max(e.stun||0,.65);
+ }
+ const effect=new THREE.Group();
+ effect.position.set(center.x,.10,center.z);
+ const orange=new THREE.MeshBasicMaterial({color:0xf6a656,transparent:true,opacity:.37,
+   depthWrite:false,side:THREE.DoubleSide});
+ const inner=new THREE.MeshBasicMaterial({color:0xfbdc7a,transparent:true,opacity:.57,
+   depthWrite:false,side:THREE.DoubleSide});
+ const base=mesh(effect,new THREE.CircleGeometry(radius,36),orange);base.rotation.x=-Math.PI/2;base.castShadow=false;
+ const rim=mesh(effect,new THREE.RingGeometry(radius-.24,radius,40),inner);
+ rim.rotation.x=-Math.PI/2;rim.castShadow=false;rim.position.y=.021;
+ const darts=[];
+ for(let i=0;i<16;i++){
+   const a=i*2.39996,r=rand(.3,radius-.30);
+   const arrow=new THREE.Group();
+   arrow.position.set(Math.cos(a)*r,rand(4.5,9),Math.sin(a)*r);
+   cyl(arrow,.06,.06,.78,materials.wood);
+   cone(arrow,.15,.30,materials.gold,0,-.54,0).rotation.z=Math.PI;
+   arrow.rotation.x=rand(-.22,.22);
+   effect.add(arrow);darts.push(arrow);
+ }
+ scene.add(effect);state.effects.push({group:effect,time:.95,rim,base,darts});
+ for(let i=0;i<22;i++)particle(center.x+rand(-radius,radius),rand(.4,2.1),
+   center.z+rand(-radius,radius),i%2?0xffb055:0xffe0a4);
+ audio.play('arrow',.92);audio.play('impact',.8);
+ showToast('🔥 ცეცხლოვანი ისრების წვიმა • '+enemies.length+' სამიზნე!');
+ ui();
+}
+function updateBattleEffects(dt){
+ for(const effect of [...state.effects]){
+   effect.time-=dt;
+   const t=Math.max(0,effect.time/.95);
+   effect.base.material.opacity=.27*t;
+   effect.rim.material.opacity=.51*t;
+   for(const d of effect.darts){
+     d.position.y-=dt*13;
+     if(d.position.y<.18)d.position.y=.18;
+   }
+   if(effect.time<=0){
+     scene.remove(effect.group);
+     effect.group.traverse(node=>{
+       if(node.geometry)node.geometry.dispose();
+       if(node.material&&!Object.values(materials).includes(node.material))node.material.dispose()
+     });
+     state.effects.splice(state.effects.indexOf(effect),1);
+   }
+ }
+}
 function showToast(msg){const box=$('toast');box.textContent=msg;box.classList.add('show');clearTimeout(lastToast);lastToast=setTimeout(()=>box.classList.remove('show'),1500)}
 function ui(){
   $('coins').textContent=state.coins;$('wave').textContent=state.wave;$('kills').textContent=state.kills;
   $('score').textContent=state.score.toLocaleString('en-US');
+  const flash=$('comboFlash');
+  if(state.combo>=3&&state.comboTimer>0){
+    flash.classList.remove('hidden');
+    flash.textContent='⚔️ ×'+state.combo+' COMBO • +ქულები';
+  }else flash.classList.add('hidden');
   $('wood').textContent=state.wood;$('guardCount').textContent=state.guards.length+'/7';
   $('healthtext').textContent=Math.ceil(state.hp)+' / '+state.maxHp;
   $('healthbar').style.width=Math.max(0,state.hp/state.maxHp*100)+'%';
@@ -1364,7 +1478,7 @@ function ui(){
   state.waveLeft+state.enemies.length===0?'✅ ტალღა მოგერიებულია':'🛡️ შეაჩერე მტრის ნაკადი';
   const nearestOpen=slots.filter(s=>!s.occupied).sort((a,b)=>dist2(a.group.position,hero.group.position)-dist2(b.group.position,hero.group.position))[0];
   $('spotHint').textContent=selectedSlot&&!selectedSlot.occupied
-    ? (selectedSlot.kind==='wall'?'🧱 მონიშნულია კედლის ადგილი':'🏹 მონიშნულია კოშკის ადგილი')
+    ? (defenseNames[selectedSlot.kind]+' • მონიშნული ადგილია')
     : nearestOpen?'მიუახლოვდი 🟡 მონიშნულ ადგილებს, ან შეეხე მათ':'🏰 ციხესიმაგრე სრულად აშენებულია!';
   const info=$('structurePanel'),button=$('structureUpgradeBtn');
   if(selectedEconomy&&state.economy.includes(selectedEconomy)&&dist2(hero.group.position,selectedEconomy.group.position)<=14){
@@ -1377,7 +1491,7 @@ function ui(){
   }else if(selectedBuild&&state.builds.includes(selectedBuild)&&dist2(hero.group.position,selectedBuild.group.position)<=14){
     info.classList.remove('hidden');
     const b=selectedBuild,cost=structureCost(b);
-    $('structureLabel').textContent=(b.kind==='wall'?'🧱 კედელი':'🏹 კოშკი')+' • LV '+b.level+'/4'+' • '+Math.ceil(b.hp)+' HP';
+    $('structureLabel').textContent=defenseNames[b.kind]+' • LV '+b.level+'/4'+' • '+Math.ceil(b.hp)+' HP';
     $('structurePrice').textContent=b.level>=4?'MAX':cost;
     button.disabled=b.level>=4||state.coins<cost;
     button.firstChild.textContent=b.level>=4?'⭐ მაქსიმუმი ':'⬆️ გააძლიერე 🪙 ';
@@ -1411,6 +1525,10 @@ function ui(){
     $('spotHint').textContent=selectedEconomyPlot&&!selectedEconomyPlot.occupied?'🏘️ აირჩიე შენობა ქვემოთ':'🌲 რესურსები • მწვანე ადგილები • მცველები';
   }
   if(buildMode==='defense'&&selectedEconomy&&!state.economy.includes(selectedEconomy))selectedEconomy=null;
+  for(const kind of ['trap','ballista']){
+    const price=defensePrices[kind];
+    $(kind+'Btn').disabled=state.coins<price.coins||state.wood<price.wood||!slots.some(s=>s.kind===kind&&!s.occupied);
+  }
   $('wallBtn').disabled=state.coins<20||!slots.some(s=>s.kind==='wall'&&!s.occupied);
   $('towerBtn').disabled=state.coins<45||!slots.some(s=>s.kind==='tower'&&!s.occupied);
   $('upgradeBtn').disabled=state.coins<60+(state.level-1)*35;
@@ -1418,6 +1536,8 @@ function ui(){
   $('dashBtn').disabled=state.dashCd>0;
   $('volleyBtn').disabled=state.volleyCd>0||state.betweenWaves;
   $('volleyCd').textContent=state.volleyCd>0?Math.ceil(state.volleyCd)+'წ':'მზადაა';
+  $('meteorBtn').disabled=state.meteorCd>0||state.betweenWaves||state.paused;
+  $('meteorCd').textContent=state.meteorCd>0?Math.ceil(state.meteorCd)+'წ':'მზადაა';
 }
 function nearest(source,range,arr=state.enemies){let best=null,ds=range;for(const e of arr){const d=dist2(source,e.group.position);if(d<ds){best=e;ds=d}}return best}
 function makeEnemy(){
@@ -1471,32 +1591,47 @@ if(fast){
   const scarf=cone(p.body,.53,.65,materials.red,0,1.55,-.16);scarf.rotation.x=Math.PI;
 }
 if(boss){cube(p.body,.85,.16,.56,materials.gold,0,1.43,-.2);showToast('👑 მტრის კაპიტანი გამოჩნდა!')}
-const lanes=[Math.PI/2,Math.PI/3,Math.PI/5,Math.PI*3/4];
-const lane=lanes[(Math.floor(state.spawned/7)+Math.floor(state.wave/2))%lanes.length];
-const angle=lane+rand(-.17,.17),radius=rand(17.8,20.6);
+const lanes=[0,Math.PI/4,Math.PI/2,Math.PI*3/4,Math.PI,Math.PI*5/4,Math.PI*3/2,Math.PI*7/4];
+const lane=lanes[(Math.floor(state.spawned/4)+Math.floor(state.wave/2))%lanes.length];
+const angle=lane+rand(-.22,.22),radius=rand(24.5,30.0);
 p.group.position.set(Math.cos(angle)*radius,0,Math.sin(angle)*radius);scene.add(p.group);
 const hp=ram?300+state.wave*20:boss?180+state.wave*13:archer?19+state.wave*4:hard?74+state.wave*9:fast?18+state.wave*5:24+state.wave*4;
 const enemyBar=new THREE.Group();enemyBar.position.y=ram?4.00:boss?2.92:hard?2.45:2.28;p.group.add(enemyBar);
 const barBack=cube(enemyBar,boss||ram?1.25:.9,.10,.06,materials.dark);
 const barFront=cube(enemyBar,boss||ram?1.23:.88,.075,.07,boss||ram?materials.gold:materials.red,0,0,.03);
 barBack.castShadow=false;barFront.castShadow=false;
-state.enemies.push({barFront,group:p.group,body:p.body,hp,maxHp:hp,speed:ram?1.18:boss?1.7:archer?1.85:hard?1.75:fast?rand(2.9,3.4):rand(2.0,2.45)+state.wave*.08,cd:rand(0,.5),hit:0,reward:ram?105:boss?65:archer?14:hard?20:fast?10:8,type:ram?'ram':boss?'captain':archer?'archer':hard?'armored':fast?'raider':'soldier',specialCd:rand(1.4,3.2)});
+state.enemies.push({barFront,group:p.group,body:p.body,hp,maxHp:hp,speed:ram?1.45:boss?2.05:archer?2.25:hard?2.10:fast?rand(3.65,4.45):rand(2.45,2.95)+state.wave*.06,cd:rand(0,.5),hit:0,reward:ram?105:boss?65:archer?14:hard?20:fast?10:8,type:ram?'ram':boss?'captain':archer?'archer':hard?'armored':fast?'raider':'soldier',specialCd:rand(1.4,3.2)});
 state.spawned++;}
 function coin(x,z,amount=8){const g=new THREE.Group();const disk=cyl(g,.3,.3,.09,materials.gold,0,.55,0);disk.rotation.z=Math.PI/2;g.position.set(x,0,z);scene.add(g);state.pickups.push({group:g,time:0,amount:Math.random()<.14?amount+5:amount})}
 function hitEnemy(e,dmg){audio.play('impact',e.hp<=dmg?.54:.38);
   const impact=e.group.position;
   for(let n=0;n<3;n++)particle(impact.x+rand(-.25,.25),rand(1.0,1.7),impact.z+rand(-.25,.25),0xffc76d);
-  e.hp-=dmg;e.hit=.18;if(e.hp<=0){const pos=e.group.position.clone();scene.remove(e.group);state.enemies.splice(state.enemies.indexOf(e),1);state.kills++;
+  e.hp-=dmg;e.hit=.18;if(e.hp<=0){const pos=e.group.position.clone();scene.remove(e.group);disposeActor(e.group);state.enemies.splice(state.enemies.indexOf(e),1);state.kills++;
   state.combo=state.comboTimer>0?Math.min(8,state.combo+1):1;state.comboTimer=2.7;
   state.score+=Math.floor(e.reward*10*(1+.16*(state.combo-1)));
   coin(pos.x,pos.z,e.reward);for(let i=0;i<5;i++)particle(pos.x,1,pos.z,0xffd36b);if(state.kills%25===0)showToast('⚔️ '+state.kills+' მტერი • შესანიშნავია!')}}
 function particle(x,y,z,color){if(state.particles.length>=240)return;const p=sphere(scene,.1,new THREE.MeshBasicMaterial({color,transparent:true,opacity:1}),x,y,z);p.castShadow=false;state.particles.push({mesh:p,vx:rand(-2,2),vy:rand(1,4),vz:rand(-2,2),life:.55})}
+// Reclaim unique geometries and materials when large enemy waves or upgraded models vanish.
+const sharedMaterials=new Set(Object.values(materials));
+function disposeActor(group){
+ if(!group)return;
+ group.traverse(node=>{
+   if(node.geometry)node.geometry.dispose();
+   if(node.material){
+     for(const material of Array.isArray(node.material)?node.material:[node.material]){
+       if(sharedMaterials.has(material))continue;
+       if(material.map)material.map.dispose();
+       material.dispose();
+     }
+   }
+ });
+}
 function disposeProjectile(group){
   if(!group)return;
   scene.remove(group);
   group.traverse(node=>{if(node.geometry)node.geometry.dispose()});
 }
-function shoot(from,to,dmg,color=0xffdf84){
+function shoot(from,to,dmg,color=0xffdf84,splash=0){
   // A physical, visible arrow rather than the former glowing round projectile.
   const arrow=new THREE.Group();arrow.position.set(from.x,from.y||1.2,from.z);
   cyl(arrow,.045,.045,1.10,materials.wood,0,0,0);
@@ -1505,21 +1640,50 @@ function shoot(from,to,dmg,color=0xffdf84){
   const feather=color===0x9df5af?materials.green:materials.yellow;
   cube(arrow,.24,.045,.10,feather,0,-.42,0);
   cube(arrow,.10,.045,.24,feather,0,-.42,0);
-  scene.add(arrow);state.shots.push({mesh:arrow,to,dmg,speed:29,life:1.32});
+  scene.add(arrow);state.shots.push({mesh:arrow,to,dmg,speed:36,life:1.8,splash});
   audio.play('arrow',color===0x9df5af?.27:.78);
 }
 function build(kind){
-  if(!state.playing||state.dead||state.betweenWaves)return;
-  const cost=kind==='wall'?20:45;
+  if(!defensePrices[kind]||!state.playing||state.dead||state.betweenWaves||state.paused)return;
+  const price=defensePrices[kind],cost=price.coins;
   const slot=getBuildSlot(kind);
-  if(!slot){showToast('🏰 მიუახლოვდი '+(kind==='wall'?'კედლის':'კოშკის')+' მონიშნულ ადგილს');return}
-  if(state.coins<cost){showToast('🪙 არ გაქვს საკმარისი მონეტები');return}
+  if(!slot){showToast('🏰 მიუახლოვდი '+defenseNames[kind]+' სამშენებლო ადგილს');return}
+  if(state.coins<cost||state.wood<price.wood){showToast('საჭიროა 🪙 '+price.coins+' და 🌲 '+price.wood);return}
   const g=new THREE.Group();g.position.copy(slot.group.position);g.rotation.y=slot.rotation;
   if(kind==='wall'){
     cube(g,3.02,1.58,.92,materials.wall,0,.79,0);
     cube(g,3.13,.23,1.07,materials.rock,0,1.65,0);
     for(const x of [-1.2,-.4,.4,1.2])cube(g,.55,.48,1.08,materials.wall,x,1.98,0);
     cube(g,3.07,.22,1.05,materials.rock,0,.12,0);
+  }else if(kind==='trap'){
+    cube(g,2.5,.24,2.5,materials.wood,0,.13,0);
+    cube(g,2.35,.10,2.35,materials.dark,0,.30,0);
+    for(const xx of [-.86,-.29,.29,.86])for(const zz of [-.86,-.29,.29,.86])
+      cone(g,.16,.63,materials.wall,xx,.63,zz);
+    for(const side of [-1,1])cube(g,2.8,.18,.17,materials.gold,0,.22,side*1.2);
+    const warning=mesh(g,new THREE.CircleGeometry(2.9,24),
+      new THREE.MeshBasicMaterial({color:0xe7a14d,transparent:true,opacity:.07,depthWrite:false,side:THREE.DoubleSide}),0,.025,0);
+    warning.rotation.x=-Math.PI/2;warning.castShadow=false;g.userData.trapPulse=warning;
+  }else if(kind==='ballista'){
+    const car=cube(g,2.8,.37,2.65,materials.wood,0,.47,0);
+    cube(g,2.15,.17,2.55,materials.wall,0,.73,0);
+    for(const side of [-1,1]){
+      const wheel=cyl(g,.51,.51,.19,materials.dark,side*1.40,.51,-.45);
+      wheel.rotation.z=Math.PI/2;
+      cube(g,.16,1.35,.18,materials.wood,side*.78,1.55,-.43);
+    }
+    const head=new THREE.Group();head.position.set(0,1.58,.07);g.add(head);
+    cyl(head,.14,.20,.9,materials.wood);
+    const bow=new THREE.CatmullRomCurve3([
+      new THREE.Vector3(-1.8,.23,.10),new THREE.Vector3(-1.22,.40,-.05),
+      new THREE.Vector3(0,.51,-.11),new THREE.Vector3(1.22,.40,-.05),new THREE.Vector3(1.8,.23,.10)
+    ]);
+    mesh(head,new THREE.TubeGeometry(bow,30,.13,8,false),materials.wood);
+    mesh(head,new THREE.TubeGeometry(new THREE.LineCurve3(
+      new THREE.Vector3(-1.8,.23,.10),new THREE.Vector3(1.8,.23,.10)),1,.018,4,false),materials.gold);
+    const shaft=cyl(head,.18,.18,2.45,materials.wood,0,.47,.35);shaft.rotation.x=Math.PI/2;
+    const headTip=cone(head,.25,.44,materials.wall,0,.47,1.72);headTip.rotation.x=Math.PI/2;
+    g.userData.ballistaHead=head;
   }else{
     cyl(g,.85,1.00,3.35,materials.wall,0,1.68,0);
     cyl(g,1.12,1.12,.34,materials.rock,0,3.42,0);
@@ -1533,36 +1697,41 @@ function build(kind){
     archer.group.scale.setScalar(.52);archer.group.position.y=3.55;
     g.add(archer.group);g.userData.archer=archer.body;
   }
-  const hit=mesh(g,new THREE.BoxGeometry(kind==='wall'?3.2:2.7,kind==='wall'?3:5.6,kind==='wall'?1.4:2.7),
-    new THREE.MeshBasicMaterial({transparent:true,opacity:.001,depthWrite:false}),0,kind==='wall'?1.5:2.8,0);
+  const hit=mesh(g,new THREE.BoxGeometry(kind==='wall'?3.2:kind==='trap'?3:kind==='ballista'?3.8:2.7,kind==='wall'?3:kind==='trap'?1:kind==='ballista'?3.6:5.6,kind==='wall'?1.4:kind==='trap'?3:kind==='ballista'?3.8:2.7),
+    new THREE.MeshBasicMaterial({transparent:true,opacity:.001,depthWrite:false}),0,kind==='wall'?1.5:kind==='trap'?.5:kind==='ballista'?1.8:2.8,0);
   hit.castShadow=false;
   scene.add(g);
-  const hp=kind==='wall'?200:170;
+  const hp=kind==='wall'?200:kind==='trap'?130:kind==='ballista'?230:170;
   const building={group:g,kind,hp,maxHp:hp,cd:rand(0,.2),slot,hit,level:1};
   hit.userData.building=building;state.builds.push(building);
   decorateBuilding(building);makeUpgradeTag(building);
-  slot.occupied=true;slot.group.visible=false;selectedSlot=null;selectedBuild=building;selectedEconomy=null;state.coins-=cost;state.totalConstruction++;
+  slot.occupied=true;slot.group.visible=false;selectedSlot=null;selectedBuild=building;selectedEconomy=null;state.coins-=cost;state.wood-=price.wood;state.totalConstruction++;
   for(let i=0;i<9;i++)particle(g.position.x,rand(.5,1.7),g.position.z,kind==='wall'?0xffdb87:0x8debd2);
-  audio.play('build');showToast(kind==='wall'?'🧱 გალავნის ნაწილი აშენდა!':'🏹 მშვილდოსნის კოშკი მზადაა!');
+  audio.play('build');showToast(defenseNames[kind]+' მზადაა!');
   ui();
 }
 function upgrade(){if(!state.playing||state.betweenWaves)return;const cost=60+(state.level-1)*35;if(state.coins<cost)return;state.coins-=cost;state.level++;state.damage+=7;state.maxHp+=18;state.hp=Math.min(state.maxHp,state.hp+35);state.maxFortHP+=25;state.fortHP=Math.min(state.maxFortHP,state.fortHP+55);hero.group.scale.setScalar(1.10+Math.min(state.level-1,4)*.045);audio.play('upgrade');showToast('⬆️ გმირი გაძლიერდა! დონე '+state.level);ui()}
 function heal(){if(!state.playing||state.betweenWaves||state.coins<35||state.hp>=state.maxHp)return;state.coins-=35;state.hp=Math.min(state.maxHp,state.hp+30);audio.play('coin',.45);showToast('❤️ სიცოცხლე აღდგენილია');ui()}
 function dash(){if(state.dashCd>0||!state.playing||state.betweenWaves)return;state.dashTime=.22;state.dashCd=3;audio.play('dash');showToast('⚡ სწრაფი მოძრაობა')}
-function beginWave(){state.betweenWaves=false;state.waveEvent=decideWaveEvent(state.wave);state.eventBannerTime=4.2;$('eventBadge').textContent=eventLabels[state.waveEvent];$('eventBadge').classList.remove('hidden');spawnVillagers();state.waveTotal=12+state.wave*6;state.waveLeft=state.waveTotal;state.spawned=0;state.spawnCd=.7;state.waveWait=0;audio.play('wave',.52);showToast('🌊 ტალღა '+state.wave+(state.wave%4===0?' • კაპიტანის შეტევა!':' • მტრის ნაკადი მოდის!'));ui()}
+function beginWave(){state.betweenWaves=false;state.waveEvent=decideWaveEvent(state.wave);state.eventBannerTime=4.2;$('eventBadge').textContent=eventLabels[state.waveEvent];$('eventBadge').classList.remove('hidden');spawnVillagers();state.waveTotal=26+state.wave*11;state.waveLeft=state.waveTotal;state.spawned=0;state.spawnCd=.35;state.waveWait=0;audio.play('wave',.52);showToast('🌊 ტალღა '+state.wave+(state.wave%4===0?' • კაპიტანის შეტევა!':' • მტრის ნაკადი მოდის!'));ui()}
 
-function reset(){for(const name of ['enemies','builds','shots','pickups','particles','villagers','economy','guards','enemyShots','hazards']){for(const item of state[name]){
+function reset(){for(const name of ['enemies','builds','shots','pickups','particles','villagers','economy','guards','enemyShots','hazards','effects']){for(const item of state[name]){
  if(name==='shots'||name==='enemyShots')disposeProjectile(item.mesh);
  else if(name==='particles'){scene.remove(item.mesh);item.mesh.geometry.dispose();item.mesh.material.dispose()}
- else scene.remove(item.group||item.mesh);
+ else if(name==='effects'){
+   scene.remove(item.group);
+   item.group.traverse(n=>{if(n.geometry)n.geometry.dispose();
+     if(n.material&&!Object.values(materials).includes(n.material))n.material.dispose()})
+ }
+ else {const o=item.group||item.mesh;scene.remove(o);if(o)disposeActor(o)}
 }state[name].length=0}
 for(const slot of slots){slot.occupied=false;slot.group.visible=true}
 for(const plot of economyPlots){plot.occupied=false;plot.group.visible=true;plot.building=null}
 for(const obj of settlementObjects)scene.remove(obj);settlementObjects.length=0;resetResourceNodes();
 selectedSlot=null;selectedBuild=null;selectedEconomy=null;selectedEconomyPlot=null;
   $('rewardOverlay').classList.add('hidden');$('pauseOverlay').classList.add('hidden');changeBuildMode('defense');
-Object.assign(state,{playing:true,dead:false,coins:80,wood:35,score:0,combo:0,comboTimer:0,armyLevel:1,castleLevel:1,cryCd:0,battleCryTime:0,missionStep:0,missionRewards:0,totalConstruction:0,recruited:0,hp:100,maxHp:100,fortHP:500,maxFortHP:500,
- wave:1,kills:0,level:1,damage:24,attackCd:0,shotInterval:.43,towerBonus:0,towerSpeed:0,
+Object.assign(state,{playing:true,dead:false,coins:175,wood:65,meteorCd:0,score:0,combo:0,comboTimer:0,armyLevel:1,castleLevel:1,cryCd:0,battleCryTime:0,missionStep:0,missionRewards:0,totalConstruction:0,recruited:0,hp:115,maxHp:115,fortHP:680,maxFortHP:680,
+ wave:1,kills:0,level:1,damage:30,attackCd:0,shotInterval:.41,towerBonus:0,towerSpeed:0,
  spawnCd:0,waveLeft:0,spawned:0,waveTotal:0,dashCd:0,dashTime:0,volleyCd:0,
  villagerGoal:1,rescued:0,lost:0,totalRescued:0,settlementTier:0,villageIncomeTimer:15,betweenWaves:false,paused:false,waveEvent:'normal',miniTimer:0,uiCd:0,waveWait:0});
 hero.group.position.set(2,0,6.5);hero.group.scale.setScalar(1.10);facing.set(0,0,-1);$('intro').classList.add('hidden');$('over').classList.add('hidden');$('guide').classList.add('hidden');$('center').style.pointerEvents='none';beginWave();ui()}
@@ -1577,14 +1746,14 @@ const dx=(vx+vy)*.7071068,dz=(-vx+vy)*.7071068;
 if(l>.05){movement.set(dx,dz);facing.set(dx,0,dz).normalize();const speed=state.dashTime>0?14:5.4;pos.x=THREE.MathUtils.clamp(pos.x+dx*speed*dt,-43,43);pos.z=THREE.MathUtils.clamp(pos.z+dz*speed*dt,-43,43);turnActor(hero.group,Math.atan2(facing.x,facing.z),dt,11)}
 else{movement.set(0,0)}
 state.dashTime=Math.max(0,state.dashTime-dt);state.dashCd=Math.max(0,state.dashCd-dt);
-state.volleyCd=Math.max(0,state.volleyCd-dt);state.cryCd=Math.max(0,state.cryCd-dt);
+state.volleyCd=Math.max(0,state.volleyCd-dt);state.meteorCd=Math.max(0,state.meteorCd-dt);state.cryCd=Math.max(0,state.cryCd-dt);
 state.battleCryTime=Math.max(0,state.battleCryTime-dt);state.comboTimer=Math.max(0,state.comboTimer-dt);
 state.eventBannerTime=Math.max(0,(state.eventBannerTime||0)-dt);
 if(state.eventBannerTime===0)$('eventBadge').classList.add('hidden');
 if(state.comboTimer===0)state.combo=0;
 state.missionTicker-=dt;if(state.missionTicker<=0){state.missionTicker=.55;updateMissions()}
 state.attackCd-=dt;
-const target=nearest(pos,10.5);
+const target=nearest(pos,14.3);
 if(target && state.attackCd<=0){
   const aim=target.group.position.clone().sub(pos);
   turnActor(hero.group,Math.atan2(aim.x,aim.z),dt,24);
@@ -1597,7 +1766,14 @@ if(target && state.attackCd<=0){
   if(hero.body.userData.rig){hero.body.userData.rig.draw=0;hero.body.userData.rig.shotFlash=1;}
 }else{}
 animateArcher(hero.body,now,!!target,dt,l>.05,state.dashTime>0);
-if(state.waveLeft>0){state.spawnCd-=dt;if(state.spawnCd<=0&&state.enemies.length<38){makeEnemy();state.waveLeft--;state.spawnCd=Math.max(.22,(.48-state.wave*.016)*(state.waveEvent==='rush'?.67:1))}}
+if(state.waveLeft>0){
+ state.spawnCd-=dt;
+ const concurrentMax=innerWidth<760?46:75;
+ if(state.spawnCd<=0&&state.enemies.length<concurrentMax){
+   makeEnemy();state.waveLeft--;
+   state.spawnCd=Math.max(.13,(.31-state.wave*.008)*(state.waveEvent==='rush'?.72:1));
+ }
+}
 else if(state.enemies.length===0){state.waveWait+=dt;
   if(state.waveWait>1.9)presentWaveRewards();
 }
@@ -1671,7 +1847,7 @@ for(const enemy of [...state.enemies]){
       targetObj.hp-=(10+state.wave*(state.waveEvent==='siege'?1.4:1))*(enemy.type==='ram'?2.9:1);
       audio.play('damage',.27);for(let i=0;i<3;i++)particle(ep.x,1,ep.z,0xf4cca4);
       if(targetObj.hp<=0){
-        scene.remove(targetObj.group);
+        scene.remove(targetObj.group);disposeActor(targetObj.group);
         if(state.builds.includes(targetObj)){
           state.builds.splice(state.builds.indexOf(targetObj),1);
           targetObj.slot.occupied=false;targetObj.slot.group.visible=true;
@@ -1697,9 +1873,44 @@ for(const enemy of [...state.enemies]){
   }
 }
 for(const b of state.builds){
-  if(b.kind!=='tower')continue;b.cd-=dt;
+  if(b.kind!=='tower'&&b.kind!=='trap'&&b.kind!=='ballista')continue;
+  b.cd-=dt;
+  if(b.kind==='trap'){
+    const radius=2.7+b.level*.45;
+    if(b.group.userData.trapPulse)b.group.userData.trapPulse.material.opacity=.045+
+      Math.sin(now*.007+b.group.position.x)*.028;
+    if(b.cd<=0){
+      const hits=state.enemies.filter(e=>dist2(e.group.position,b.group.position)<radius);
+      if(hits.length){
+        for(const e of hits){
+          hitEnemy(e,9+b.level*6);
+          e.stun=Math.max(e.stun||0,.22+b.level*.08);
+        }
+        for(let i=0;i<Math.min(8,hits.length*2);i++)
+          particle(b.group.position.x+rand(-1.3,1.3),rand(.28,1.0),b.group.position.z+rand(-1.3,1.3),0xffb77b);
+        b.cd=Math.max(.5,1.18-b.level*.13);
+      }else b.cd=.14;
+    }
+    continue;
+  }
+  if(b.kind==='ballista'){
+    const target=nearest(b.group.position,20+b.level*2.5);
+    const head=b.group.userData.ballistaHead;
+    if(target&&head){
+      const diff=target.group.position.clone().sub(b.group.position);
+      head.rotation.y=Math.atan2(diff.x,diff.z)-b.group.rotation.y;
+    }
+    if(b.cd<=0&&target){
+      shoot(new THREE.Vector3(b.group.position.x,2.3,b.group.position.z),
+        target,47+b.level*19+state.towerBonus,0xf6a75a,1.7+b.level*.25);
+      if(head)head.rotation.x=-.18;
+      b.cd=Math.max(.80,1.75-b.level*.17-state.towerSpeed*.5);
+    }
+    if(head)head.rotation.x=THREE.MathUtils.lerp(head.rotation.x,0,Math.min(1,dt*4));
+    continue;
+  }
   const archer=b.group.userData.archer;
-  const target=nearest(b.group.position,11.7+b.level*1.7);
+  const target=nearest(b.group.position,15.0+b.level*2.0);
   if(archer){
     archer.userData.attackCd=b.cd;
     if(target){
@@ -1715,11 +1926,20 @@ for(const b of state.builds){
   }
 }
 for(const shot of [...state.shots]){shot.life-=dt;const bullet=shot.mesh,enemy=shot.to;if(!state.enemies.includes(enemy)||shot.life<=0){disposeProjectile(bullet);state.shots.splice(state.shots.indexOf(shot),1);continue}
-const tp=enemy.group.position;const dd=new THREE.Vector3(tp.x,1.05,tp.z).sub(bullet.position),len=dd.length();if(len<.45+shot.speed*dt){disposeProjectile(bullet);state.shots.splice(state.shots.indexOf(shot),1);hitEnemy(enemy,shot.dmg)}else {
+const tp=enemy.group.position;const dd=new THREE.Vector3(tp.x,1.05,tp.z).sub(bullet.position),len=dd.length();if(len<.45+shot.speed*dt){
+ const point=enemy.group.position.clone();
+ disposeProjectile(bullet);state.shots.splice(state.shots.indexOf(shot),1);
+ hitEnemy(enemy,shot.dmg);
+ if(shot.splash>0){
+   const hits=state.enemies.filter(e=>dist2(e.group.position,point)<shot.splash);
+   for(const e of hits)hitEnemy(e,Math.floor(shot.dmg*.43));
+   for(let k=0;k<10;k++)particle(point.x+rand(-1,1),rand(.45,1.45),point.z+rand(-1,1),0xffb160);
+ }
+}else {
   bullet.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dd.clone().normalize());
   bullet.position.addScaledVector(dd.normalize(),shot.speed*dt);
 }}
-updateVillagers(now,dt);tickSettlement(dt);tickEconomy(dt,now);updateGuards(now,dt);updateEnemyShots(dt);updateHazards(dt);updateResourceNodes(now,dt);
+updateVillagers(now,dt);tickSettlement(dt);tickEconomy(dt,now);updateGuards(now,dt);updateEnemyShots(dt);updateHazards(dt);updateResourceNodes(now,dt);updateBattleEffects(dt);
 for(const item of [...state.pickups]){
  item.time+=dt;item.group.position.y=Math.sin(item.time*4)*.12;
  item.group.rotation.y+=dt*3.1;
@@ -1727,6 +1947,8 @@ for(const item of [...state.pickups]){
  if(gap<5.6&&gap>1.30){const step=Math.min(gap-1.25,dt*(4.5+item.time*.16));item.group.position.x+=(pos.x-item.group.position.x)/gap*step;item.group.position.z+=(pos.z-item.group.position.z)/gap*step}
  if(dist2(item.group.position,pos)<1.7){audio.play('coin',.27);state.coins+=item.amount;for(let i=0;i<4;i++)particle(item.group.position.x,.6,item.group.position.z,0xffdf7f);scene.remove(item.group);state.pickups.splice(state.pickups.indexOf(item),1)}}
 for(const item of [...state.particles]){item.life-=dt;item.mesh.position.x+=item.vx*dt;item.mesh.position.y+=item.vy*dt;item.mesh.position.z+=item.vz*dt;item.vy-=9*dt;item.mesh.material.opacity=Math.max(0,item.life/.55);if(item.life<=0){scene.remove(item.mesh);item.mesh.geometry.dispose();item.mesh.material.dispose();state.particles.splice(state.particles.indexOf(item),1)}}
+for(const plot of economyPlots)if(!plot.occupied)
+    plot.group.visible=dist2(plot.group.position,pos)<25;
 for(const econ of state.economy)if(econ.label){
     econ.label.visible=selectedEconomy===econ&&dist2(econ.group.position,pos)<15;
   }
@@ -1749,11 +1971,23 @@ for(const torch of castleTorches){
 }
 flag.rotation.y=-.35+Math.sin(now*.0017)*.075;
 const desired=new THREE.Vector3(pos.x+19,22,pos.z+19);camera.position.lerp(desired,Math.min(1,dt*2.5));camera.lookAt(pos.x,1.05,pos.z);renderer.render(scene,camera)}
-function resize(){const width=innerWidth,height=innerHeight,aspect=width/height;const view=width<760?12.2:15.5;camera.left=-view*aspect;camera.right=view*aspect;camera.top=view;camera.bottom=-view;camera.updateProjectionMatrix();renderer.setSize(width,height)}
+function resize(){
+ const width=innerWidth,height=innerHeight,aspect=width/height;
+ const view=(width<760?18.5:21.0)/cameraZoom;
+ camera.left=-view*aspect;camera.right=view*aspect;camera.top=view;camera.bottom=-view;
+ camera.updateProjectionMatrix();renderer.setSize(width,height);
+}
 addEventListener('resize',resize);resize();
-addEventListener('keydown',ev=>{const k=ev.key.toLowerCase();keys[k]=true;if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k))ev.preventDefault();if(k===' '&&!ev.repeat)dash();if(k==='q'&&!ev.repeat)build('wall');if(k==='e'&&!ev.repeat)build('tower');if(k==='r'&&!ev.repeat)upgrade();if(k==='f'&&!ev.repeat)(selectedEconomy?upgradeEconomy():upgradeStructure());if(k==='v'&&!ev.repeat)volley();if(k==='1'&&!ev.repeat)changeBuildMode('defense');if(k==='2'&&!ev.repeat)changeBuildMode('village');if(k==='g'&&!ev.repeat)recruitGuard();if(k==='p'&&!ev.repeat)(state.paused?closePause():openPause());if(k==='b'&&!ev.repeat)battleCry();
+$('zoomLabel').textContent=Math.round(cameraZoom*100)+'%';
+$('zoomOutBtn').onclick=()=>setCameraZoom(cameraZoom-.085);
+$('zoomInBtn').onclick=()=>setCameraZoom(cameraZoom+.085);
+renderer.domElement.addEventListener('wheel',ev=>{
+ if(!state.playing||state.paused)return;
+ if(ev.shiftKey){ev.preventDefault();setCameraZoom(cameraZoom+(ev.deltaY<0?.045:-.045))}
+},{passive:false});
+addEventListener('keydown',ev=>{const k=ev.key.toLowerCase();keys[k]=true;if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k))ev.preventDefault();if(k===' '&&!ev.repeat)dash();if(k==='q'&&!ev.repeat)build('wall');if(k==='e'&&!ev.repeat)build('tower');if(k==='r'&&!ev.repeat)upgrade();if(k==='f'&&!ev.repeat)(selectedEconomy?upgradeEconomy():upgradeStructure());if(k==='v'&&!ev.repeat)volley();if(k==='m'&&!ev.repeat)meteorStorm();if(k==='1'&&!ev.repeat)changeBuildMode('defense');if(k==='2'&&!ev.repeat)changeBuildMode('village');if(k==='g'&&!ev.repeat)recruitGuard();if(k==='p'&&!ev.repeat)(state.paused?closePause():openPause());if(k==='b'&&!ev.repeat)battleCry();
 if(k==='h'&&!ev.repeat)recruitGuard('archer');if(k==='j'&&!ev.repeat)recruitGuard('healer');
-if(k==='3'&&!ev.repeat)changeBuildMode('army')});
+if(k==='3'&&!ev.repeat)changeBuildMode('army');if(k==='-'&&!ev.repeat)setCameraZoom(cameraZoom-.08);if(k==='='&&!ev.repeat)setCameraZoom(cameraZoom+.08)});
 addEventListener('keyup',ev=>{keys[ev.key.toLowerCase()]=false});
 addEventListener('blur',()=>{for(const key in keys)keys[key]=false;joystick.x=0;joystick.y=0;setStick(0,0)});
 const base=$('joystick'),stick=$('stick');
@@ -1793,6 +2027,7 @@ $('rewardBow').onclick=()=>chooseReward('bow');
 $('rewardFort').onclick=()=>chooseReward('fort');
 $('rewardTower').onclick=()=>chooseReward('tower');
 $('volleyBtn').onclick=volley;
+$('meteorBtn').onclick=meteorStorm;
 $('structureUpgradeBtn').onclick=()=>selectedEconomy&&state.economy.includes(selectedEconomy)?upgradeEconomy():upgradeStructure();
 $('defenseTab').onclick=()=>changeBuildMode('defense');
 $('armyTab').onclick=()=>changeBuildMode('army');
@@ -1813,24 +2048,32 @@ $('restartBtn').onclick=()=>{
  closePause();reset();saveCheckpoint(true);
 };
 $('continueBtn').onclick=restoreSnapshot;
-$('wallBtn').onclick=()=>build('wall');$('towerBtn').onclick=()=>build('tower');$('upgradeBtn').onclick=upgrade;$('healBtn').onclick=heal;$('dashBtn').onclick=dash;$('startBtn').onclick=()=>{audio.unlock();reset();saveCheckpoint(true)};$('againBtn').onclick=()=>{audio.unlock();reset();saveCheckpoint(true)};
+$('wallBtn').onclick=()=>build('wall');$('towerBtn').onclick=()=>build('tower');$('trapBtn').onclick=()=>build('trap');$('ballistaBtn').onclick=()=>build('ballista');$('upgradeBtn').onclick=upgrade;$('healBtn').onclick=heal;$('dashBtn').onclick=dash;$('startBtn').onclick=()=>{audio.unlock();reset();saveCheckpoint(true)};$('againBtn').onclick=()=>{audio.unlock();reset();saveCheckpoint(true)};
 camera.position.set(21,22,22);camera.lookAt(0,0,0);showRecord();hasCheckpoint();ui();updateMissions();drawMiniMap();requestAnimationFrame(frame);
 
 if(location.pathname.toLowerCase().includes('developer')){
-const panel=document.createElement('aside');panel.id='devPanel';panel.innerHTML='<div class="devtitle">🛠️ DEVELOPER • GEORGIA 0.8</div><button id="devMoney">🪙 +1000</button><button id="devWood">🌲 +100</button><button id="devGuard">🛡️ მცველი</button><button id="devArcher">🏹 მოკავშირე</button><button id="devHealer">💚 მკურნალი</button><button id="devSiege">🪵 ტარანი</button><button id="devSave">💾 Save</button><button id="devGod">🛡️ უკვდავება OFF</button><button id="devSkip">⏩ შემდეგი ტალღა</button><button id="devFull">❤️ შევსება</button><button id="devWalls">🏰 ყველა ნაგებობა</button>';document.body.append(panel);
+const panel=document.createElement('aside');panel.id='devPanel';panel.innerHTML='<div class="devtitle">🛠️ DEVELOPER • GEORGIA 0.9</div><button id="devMoney">🪙 +1000</button><button id="devWood">🌲 +100</button><button id="devGuard">🛡️ მცველი</button><button id="devArcher">🏹 მოკავშირე</button><button id="devHealer">💚 მკურნალი</button><button id="devSiege">🪵 ტარანი</button><button id="devHorde">🔥 დიდი ტალღა</button><button id="devBuild">🎯 ბალისტა</button><button id="devSave">💾 Save</button><button id="devGod">🛡️ უკვდავება OFF</button><button id="devSkip">⏩ შემდეგი ტალღა</button><button id="devFull">❤️ შევსება</button><button id="devWalls">🏰 ყველა ნაგებობა</button>';document.body.append(panel);
 $('devMoney').onclick=()=>{state.coins+=1000;ui();showToast('🪙 +1000')};
 $('devWood').onclick=()=>{state.wood+=100;ui();showToast('🌲 +100')};
 $('devGuard').onclick=()=>{state.coins+=35;state.wood+=3;recruitGuard('sword',true);ui()};
 $('devArcher').onclick=()=>{recruitGuard('archer',true);ui()};
 $('devHealer').onclick=()=>{recruitGuard('healer',true);ui()};
 $('devSiege').onclick=()=>{if(!state.playing)return;state.wave=5;state.waveTotal=1;state.spawned=0;makeEnemy();state.waveLeft=0;ui()};
+$('devHorde').onclick=()=>{if(!state.playing)return;state.coins+=900;
+  for(let i=0;i<20;i++){state.spawned++;makeEnemy()}state.spawned-=20;ui();showToast('⚔️ 20 მტერი!')};
+$('devBuild').onclick=()=>{
+ if(!state.playing)return;
+ const slot=slots.find(x=>x.kind==='ballista'&&!x.occupied);
+ if(!slot)return;
+ state.coins+=100;state.wood+=20;hero.group.position.copy(slot.group.position);selectedSlot=slot;build('ballista');ui();
+};
 $('devSave').onclick=()=>saveCheckpoint();
 $('devGod').onclick=()=>{const enabled=state.maxHp<5000;if(enabled){state.maxHp=99999;state.hp=99999;}else{state.maxHp=100+(state.level-1)*18;state.hp=state.maxHp}$('devGod').textContent='🛡️ უკვდავება '+(enabled?'ON':'OFF');ui();};
-$('devSkip').onclick=()=>{if(!state.playing)return;for(const e of state.enemies)scene.remove(e.group);state.enemies.length=0;state.waveLeft=0;state.waveWait=2.5;showToast('⏩ შემდეგი ტალღა')};
+$('devSkip').onclick=()=>{if(!state.playing)return;for(const e of state.enemies){scene.remove(e.group);disposeActor(e.group)}state.enemies.length=0;state.waveLeft=0;state.waveWait=2.5;showToast('⏩ შემდეგი ტალღა')};
 $('devFull').onclick=()=>{state.hp=state.maxHp;state.fortHP=state.maxFortHP;ui();showToast('❤️ შევსებულია')};
 $('devWalls').onclick=()=>{if(!state.playing)return;state.coins+=3000;for(const slot of [...slots]){if(!slot.occupied){hero.group.position.set(slot.group.position.x,0,slot.group.position.z+2);selectedSlot=slot;build(slot.kind)}}hero.group.position.set(2,0,6.5);ui()};
 }
 
 if(location.pathname.toLowerCase().includes('developer'))window.__GEORGIA_DEV={state,hero,slots,audio,economyPlots,resourceNodes,buildEconomy,upgradeEconomy,tickEconomy,
-    recruitGuard,updateGuards,makeEnemy,beginWave,bossWarning,saveCheckpoint,restoreSnapshot,decideWaveEvent,battleCry,upgradeCastle,trainArmy,missionProgress,
+    recruitGuard,updateGuards,makeEnemy,beginWave,bossWarning,saveCheckpoint,restoreSnapshot,decideWaveEvent,battleCry,upgradeCastle,trainArmy,missionProgress,meteorStorm,setCameraZoom,
     volley,chooseReward,spawnVillagers,presentWaveRewards,get selected(){return selectedBuild},upgradeStructure};

@@ -1,9 +1,9 @@
 ﻿{
     "name":  "georgia-game",
-    "version":  "0.8.0",
+    "version":  "0.9.0",
     "private":  true,
     "type":  "module",
-    "description":  "GEORGIA Siege and Allies — 3 unit classes, battering ram, fortress tiers, quests and score",
+    "description":  "GEORGIA Alpha 0.9: expanded zoomed-out battlefield, 82 building sites, firestorm, ballistas and larger enemy waves",
     "scripts":  {
                     "start":  "npx serve . -l 8080",
                     "check":  "node --check main.js"

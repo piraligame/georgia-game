@@ -257,3 +257,41 @@ body:has(#villageBuilds:not(.hidden)) .structure-panel{bottom:max(420px,calc(env
  #missionPanel{top:196px}
  #actions button small{font-size:8px;line-height:1.08}
 }
+
+
+/* GEORGIA Alpha 0.9 — wide battlefield with user-adjustable zoom */
+#zoomControls{position:fixed;right:7px;top:405px;z-index:4;display:flex;flex-direction:column;align-items:center;
+ gap:2px;background:#143d36c9;border:1px solid #d8c18a87;border-radius:12px;padding:4px;
+ box-shadow:0 4px 12px #152a2468}
+#zoomControls button{width:30px;height:30px;border-radius:8px;background:#426a56ed;color:#fce7bd;
+ border:1px solid #e6d4a45b;font-size:21px;font-weight:900;line-height:1}
+#zoomLabel{font-size:9px;color:#f6d99f;font-weight:900;line-height:1.1}
+#defenseBuilds{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
+#defenseBuilds .build{min-width:0;padding:7px 2px}
+#defenseBuilds .build b{font-size:9px;white-space:nowrap}
+#defenseBuilds .build small{font-size:9px}
+#actions #meteorBtn{width:56px;height:56px;font-size:21px;border:1px solid #f4be77a2;
+ background:linear-gradient(150deg,#a95533,#5c3940)}
+#meteorBtn:disabled{opacity:.5;filter:grayscale(.55)}
+@media(max-width:780px){
+ #zoomControls{top:405px;right:5px;gap:1px;padding:3px}
+ #zoomControls button{width:25px;height:25px;font-size:19px}
+ #zoomLabel{font-size:8px}
+ #defenseBuilds .build{padding:7px 1px}
+ #defenseBuilds .build b{font-size:8px}
+ #defenseBuilds .build small{font-size:8px}
+ #actions #meteorBtn{width:48px;height:48px;font-size:17px}
+ #actions{gap:2px;right:3px}
+ #actions #cryBtn,#actions #volleyBtn,#actions #dashBtn,#actions #healBtn{width:48px;height:48px}
+}
+@media(max-width:365px){
+ #actions #meteorBtn,#actions #cryBtn,#actions #volleyBtn,#actions #dashBtn,#actions #healBtn{width:43px;height:43px;font-size:17px}
+ #defenseBuilds .build b{font-size:7px}
+}
+
+/* Clear combo feedback when consecutive kills create score streaks. */
+#comboFlash{position:fixed;top:42%;left:50%;transform:translateX(-50%);
+ background:#182b27c9;color:#ffd58e;border:1px solid #ffd58e8a;
+ border-radius:9px;z-index:3;padding:5px 11px;font-size:13px;
+ font-weight:1000;letter-spacing:.04em;text-shadow:0 1px 2px #0008;pointer-events:none}
+@media(max-width:780px){#comboFlash{top:40%;font-size:11px;padding:4px 8px}}

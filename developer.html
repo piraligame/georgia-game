@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="ka"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><meta name="theme-color" content="#101c1b"><title>GEORGIA Developer — სამეფოს დაცვა</title><link rel="icon" type="image/svg+xml" href="./favicon.svg"><link rel="stylesheet" href="./style.css?v=0.8"></head>
+<html lang="ka"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><meta name="theme-color" content="#101c1b"><title>GEORGIA Developer — სამეფოს დაცვა</title><link rel="icon" type="image/svg+xml" href="./favicon.svg"><link rel="stylesheet" href="./style.css?v=0.9"></head>
 <body>
 <div id="game"></div><div id="vignette"></div>
 <div id="hud">
-  <div class="brand"><b>GEORGIA</b><span>სამეფოს დაცვა • ALPHA 0.8</span></div>
+  <div class="brand"><b>GEORGIA</b><span>სამეფოს დაცვა • ALPHA 0.9</span></div>
   <div class="statline"><div class="stat">🪙 <b id="coins">0</b></div><div class="stat">🌊 <b id="wave">1</b></div><div class="stat">⚔️ <b id="kills">0</b></div></div>
   <div class="healthrow"><div class="healthtrack"><div id="healthbar"></div></div><span id="healthtext">100 / 100</span></div><div class="fortrow">🏰 ციხე <b id="fortressHP">500 / 500</b></div>
 </div>
@@ -16,8 +16,13 @@
 <div id="missionPanel"><div class="mission-top">📜 <b>სამეფოს დავალებები</b> <span id="missionRewards">🪙 0</span></div>
 <div class="mission-line" id="missionLine">მიზნები მალე გამოჩნდება</div></div>
 <div id="guide">🏹 ახალი საბრძოლო ანიმაციები • 🔊 ბრძოლის ხმები • 🏰 დაიცავი ციხე</div>
-<div id="toast"></div><div id="eventBadge" class="event-badge hidden">⚔️ მტრის შეტევა</div>
-<canvas id="miniMap" width="132" height="132" aria-label="მინი რუკა"></canvas><div id="waveInfo"><span id="waveObjective">🏰 დაიცავი ციხე</span><span id="waveRemain">0 მტერი</span></div><div id="questTracker">🏡 გადაარჩინე სოფლის მცხოვრები <b id="villagerCount">0/1</b></div>
+<div id="toast"></div><div id="comboFlash" class="hidden">⚔️ ×2 COMBO</div><div id="eventBadge" class="event-badge hidden">⚔️ მტრის შეტევა</div>
+<canvas id="miniMap" width="132" height="132" aria-label="მინი რუკა"></canvas>
+<div id="zoomControls" aria-label="კამერის მასშტაბი">
+  <button id="zoomOutBtn" type="button" aria-label="კამერის დაშორება">−</button>
+  <span id="zoomLabel">75%</span>
+  <button id="zoomInBtn" type="button" aria-label="კამერის მოახლოება">+</button>
+</div><div id="waveInfo"><span id="waveObjective">🏰 დაიცავი ციხე</span><span id="waveRemain">0 მტერი</span></div><div id="questTracker">🏡 გადაარჩინე სოფლის მცხოვრები <b id="villagerCount">0/1</b></div>
 <div id="structurePanel" class="structure-panel hidden"><span id="structureLabel">🏹 კოშკი • დონე 1</span><button id="structureUpgradeBtn">⬆️ გააძლიერე 🪙 <b id="structurePrice">40</b></button></div>
 <div id="buildpanel">
   <div class="buildtabs"><button id="defenseTab" class="active" type="button">🛡️ დაცვა</button><button id="villageTab" type="button">🏘️ სოფელი</button><button id="armyTab" type="button">⚔️ ჯარი</button></div>
@@ -26,6 +31,8 @@
   <div id="defenseBuilds" class="buildrow">
     <button id="wallBtn" class="build"><b>🧱 კედელი</b><small>🪙 20</small></button>
     <button id="towerBtn" class="build"><b>🏹 კოშკი</b><small>🪙 45</small></button>
+    <button id="trapBtn" class="build"><b>🪤 მახე</b><small>🪙 28 🌲 2</small></button>
+    <button id="ballistaBtn" class="build"><b>🎯 ბალისტა</b><small>🪙 85 🌲 10</small></button>
     <button id="upgradeBtn" class="build"><b>⬆️ გმირი</b><small id="upgradePrice">🪙 60</small></button>
   </div>
   <button id="castleUpgradeBtn" class="castle-upgrade">🏰 ციხის დონე <b id="castleLevel">1/5</b><small id="castleUpgradeCost">🪙 110 🌲 12</small></button>
@@ -47,9 +54,9 @@
   </div>
 </div>
 <div id="joystick" aria-hidden="true"><div id="stick"></div></div>
-<div id="actions"><button id="cryBtn" aria-label="საბრძოლო შეძახილი">📯<small>მხარდაჭერა<br><span id="cryCd">მზადაა</span></small></button><button id="volleyBtn">🏹<small>ხუთი ისარი<br><span id="volleyCd">მზადაა</span></small></button><button id="dashBtn">⚡<small>გაქცევა</small></button><button id="healBtn">❤️<small>+30 HP<br>🪙 35</small></button></div>
+<div id="actions"><button id="meteorBtn" aria-label="ცეცხლოვანი წვიმა">🔥<small>ისრების წვიმა<br><span id="meteorCd">მზადაა</span></small></button><button id="cryBtn" aria-label="საბრძოლო შეძახილი">📯<small>მხარდაჭერა<br><span id="cryCd">მზადაა</span></small></button><button id="volleyBtn">🏹<small>ხუთი ისარი<br><span id="volleyCd">მზადაა</span></small></button><button id="dashBtn">⚡<small>გაქცევა</small></button><button id="healBtn">❤️<small>+30 HP<br>🪙 35</small></button></div>
 <div id="pauseOverlay" class="reward-overlay hidden">
-  <section class="reward-card"><div class="reward-kicker">🏰 GEORGIA ALPHA 0.8</div>
+  <section class="reward-card"><div class="reward-kicker">🏰 GEORGIA ALPHA 0.9</div>
     <h2>სამეფოს მართვა</h2><p id="pauseSummary">პროგრესი ინახება და შეგიძლია თამაშს დაუბრუნდე.</p>
     <div class="pause-actions">
       <button id="resumeBtn">▶️ გაგრძელება</button><button id="saveBtn">💾 შენახვა</button>
@@ -68,5 +75,5 @@
 </div><div class="reward-earned" id="rewardEarned"></div></section></div>
 <div id="center"><section id="intro" class="modal"><div class="crest flag-hero">🇬🇪</div><div class="eyebrow">🇬🇪 ააშენე და დაიცავი ქართული ციხესიმაგრე</div><h1>GEORGIA</h1><h2>ააშენე ციხე • მოიგერიე მტერი</h2><p>იმოძრავე ცოცხალი გმირით, დამიზნე და ისროლე მშვილდიდან, შეაგროვე მონეტები, ააშენე და გააძლიერე გალავნები და მშვილდოსნის კოშკები. შეაჩერე მტრის უწყვეტი ნაკადი, გააძლიერე მშვილდი და ციხე, და მოიგერიე ყველა შეტევა!</p><div id="bestRecord">🏆 პირადი რეკორდი: 0 ტალღა</div><button id="startBtn" class="primary">🏹 ახალი თამაში</button>
 <button id="continueBtn" class="primary secondary hidden">💾 გაგრძელება შენახულიდან</button><small>ტელეფონი: ქვედა ნაწილში შეეხე და ამოძრავე თითი • კომპიუტერი: WASD / ისრები<br>კედელი Q • კოშკი E • გაძლიერება R • Dash Space • 🎵 მუსიკა იწყება თამაშთან ერთად</small></section><section id="over" class="modal hidden"><div class="crest">⚔</div><h1>ბრძოლა დასრულდა</h1><p id="result"></p><button id="againBtn" class="primary">თავიდან თამაში</button></section></div>
-<script type="module" src="./main.js?v=0.8"></script>
+<script type="module" src="./main.js?v=0.9"></script>
 </body></html>
