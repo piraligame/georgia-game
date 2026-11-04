@@ -295,3 +295,82 @@ body:has(#villageBuilds:not(.hidden)) .structure-panel{bottom:max(420px,calc(env
  border-radius:9px;z-index:3;padding:5px 11px;font-size:13px;
  font-weight:1000;letter-spacing:.04em;text-shadow:0 1px 2px #0008;pointer-events:none}
 @media(max-width:780px){#comboFlash{top:40%;font-size:11px;padding:4px 8px}}
+
+
+/* GEORGIA 1.0 — Narikala immersion: clear 3D viewport and contextual on-world building */
+#buildpanel,#structurePanel{display:none!important}
+#eraBanner{position:fixed;top:155px;left:50%;transform:translateX(-50%);width:min(88vw,320px);
+ padding:6px 10px;z-index:4;pointer-events:none;text-align:center;
+ background:linear-gradient(100deg,#173f38d9,#264538c2);border-radius:12px;border:1px solid #eed4a457;
+ color:#fff0c7;text-shadow:0 1px 2px #1118;display:flex;flex-direction:column;gap:1px}
+#chapterTitle{font-size:12px;font-weight:1000}
+#chapterMission{font-size:10px;font-weight:600;color:#e1eacc}
+#missionPanel{top:209px;left:45%;width:min(76vw,280px);padding:4px 8px}
+#missionPanel .mission-top{font-size:9px}
+#missionPanel .mission-line{font-size:9px}
+#eventBadge{top:264px}
+#toast{top:292px}
+#miniMap{top:320px;width:70px;height:70px;right:6px}
+#zoomControls{top:400px;right:6px;bottom:auto}
+#waveInfo{display:none!important}
+#questTracker{display:none!important}
+#guide{display:none!important}
+#worldBuildInfo{position:fixed;bottom:max(333px,calc(env(safe-area-inset-bottom) + 312px));right:8px;
+ width:170px;border:1px solid #f7d9a690;border-radius:12px;padding:7px 9px;z-index:5;
+ color:#fff3cc;background:#183c31e5;box-shadow:0 7px 16px #0c221a90;pointer-events:none}
+#worldBuildTitle{font-size:11px;font-weight:950;line-height:1.25}
+#worldBuildCost{font-size:10px;color:#d6e4c6;margin-top:4px;font-weight:800}
+.world-build-meter{height:7px;border-radius:8px;margin-top:6px;background:#0f201c;border:1px solid #d5b27d77;overflow:hidden}
+#worldBuildBar{height:100%;background:linear-gradient(90deg,#d18c47,#ffd879);width:0%;transition:width .12s linear}
+.context-actions{position:fixed;right:8px;bottom:max(245px,calc(env(safe-area-inset-bottom) + 224px));width:144px;
+ z-index:5;display:flex;flex-direction:column;gap:4px}
+.context-actions.hidden{display:none!important}
+.context-actions button{padding:7px 6px;border-radius:9px;border:1px solid #f8d5996b;
+ background:linear-gradient(95deg,#365b50,#20483e);color:#fff0c7;box-shadow:0 2px 7px #091f1985;
+ font-size:10px;font-weight:900}
+#actions{right:6px!important;bottom:max(12px,env(safe-area-inset-bottom))!important;top:auto!important;
+ display:flex!important;flex-direction:column!important;align-items:center!important;gap:5px!important}
+#actions button,#actions #cryBtn,#actions #meteorBtn,#actions #volleyBtn,#actions #dashBtn,#actions #healBtn{
+ width:47px!important;height:47px!important;font-size:19px!important;flex:0 0 47px!important;
+ border-radius:50%!important}
+#actions button small{font-size:7px!important;line-height:1!important}
+#resourceBar{top:89px;left:9px}
+#pauseBtn{top:91px}
+#comboFlash{top:43%}
+@media(max-width:780px){
+ #eraBanner{top:142px;padding:5px 8px}
+ #chapterTitle{font-size:11px}#chapterMission{font-size:9px}
+ #missionPanel{top:194px;width:73vw}
+ #eventBadge{top:246px}#toast{top:281px}
+ #miniMap{top:304px;width:64px;height:64px}
+ #zoomControls{top:382px}
+ #worldBuildInfo{bottom:max(300px,calc(env(safe-area-inset-bottom) + 282px));width:155px}
+ .context-actions{bottom:max(231px,calc(env(safe-area-inset-bottom) + 214px));width:128px}
+ #actions button,#actions #cryBtn,#actions #meteorBtn,#actions #volleyBtn,#actions #dashBtn,#actions #healBtn{width:43px!important;height:43px!important;flex-basis:43px!important}
+}
+@media(max-height:750px){
+ #worldBuildInfo{bottom:276px}
+ .context-actions{bottom:219px}
+ #actions button,#actions #cryBtn,#actions #meteorBtn,#actions #volleyBtn,#actions #dashBtn,#actions #healBtn{height:40px!important;width:40px!important;flex-basis:40px!important}
+}
+
+/* Avoid collision among world payments, right-side command dock and zoom. */
+#zoomControls{right:auto!important;left:7px!important;top:368px!important}
+#worldBuildInfo{bottom:max(359px,calc(env(safe-area-inset-bottom) + 342px))}
+.context-actions{bottom:max(263px,calc(env(safe-area-inset-bottom) + 246px))}
+@media(max-width:780px){
+ #zoomControls{top:350px!important}
+ #worldBuildInfo{bottom:max(356px,calc(env(safe-area-inset-bottom) + 338px))}
+ .context-actions{bottom:max(258px,calc(env(safe-area-inset-bottom) + 240px))}
+}
+@media(max-height:750px){
+ #zoomControls{top:324px!important}
+ #worldBuildInfo{bottom:324px}
+ .context-actions{bottom:246px}
+}
+
+/* Uninterrupted siege: no large mission or reward overlays during play. */
+#missionPanel{display:none!important}
+#eventBadge{top:209px}
+#toast{top:243px}
+@media(max-width:780px){#eventBadge{top:196px}#toast{top:230px}}

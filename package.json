@@ -1,11 +1,11 @@
-﻿{
-    "name":  "georgia-game",
-    "version":  "0.9.0",
-    "private":  true,
-    "type":  "module",
-    "description":  "GEORGIA Alpha 0.9: expanded zoomed-out battlefield, 82 building sites, firestorm, ballistas and larger enemy waves",
-    "scripts":  {
-                    "start":  "npx serve . -l 8080",
-                    "check":  "node --check main.js"
-                }
+{
+  "name": "georgia-game",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "GEORGIA — Narikala: walk-to-build coin deposits, 4-tier walls, David of Shavsheti, Mongol and Persian siege chapters, continuous action",
+  "scripts": {
+    "start": "npx serve . -l 8080",
+    "check": "node --check main.js"
+  }
 }

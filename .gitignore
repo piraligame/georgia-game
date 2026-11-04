@@ -29,3 +29,8 @@ patch-alpha08-*.py
 alpha09-*.cjs
 alpha09-*.png
 patch-alpha09-*.py
+
+alpha10-*.png
+alpha10-*.cjs
+patch-alpha10-*.py
+fix-qa10.py
