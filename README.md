@@ -10,6 +10,15 @@
 
 **GEORGIA სრულიად ცალკეა. PIRALI-ის კოდი და რეპოზიტორია არ იცვლება.**
 
+## 📱 Android Alpha 1.06 — სატესტო ჩამოტვირთვა
+- **APK — მობილურზე ინსტალაცია:** https://github.com/piraligame/georgia-game/releases/download/alpha-1.06/GEORGIA-Alpha-1.06-Android.apk
+- **ხელმოწერილი AAB — Play Console:** https://github.com/piraligame/georgia-game/releases/download/alpha-1.06/GEORGIA-Alpha-1.06-signed.aab
+- **GitHub Release:** https://github.com/piraligame/georgia-game/releases/tag/alpha-1.06
+
+**მნიშვნელოვანი:** GitHub-ზე APK-ის ჩამოტვირთვა Google Play-ის Closed Testing-ში მონაწილეობად არ ითვლება. AAB ჯერ უნდა აიტვირთოს Play Console-ში; იქ 12 ტესტერმა უნდა აირჩიოს ტესტირებაში მონაწილეობა და ზედიზედ 14 დღე დარჩეს. Android-ის ხელმოწერის პირადი გასაღები არ ინახება GitHub-ში.
+
+
+
 ## Alpha 1.06 — ისტორიული არმიები, პაუზა და Android
 - რვა განსხვავებული ისტორიული ეპოქით შთაგონებული კამპანია, თითოეული ოთხტალღიანი: არაბები, სელჩუკები, ხვარაზმელები, მონღოლები, თემურის ჯარი, ოსმალები, საფავიდები, რუსეთის იმპერიის ჯარი. გარემო და მთავარი გმირი კვლავ ისტორიული ფენტეზია.
 - მტერს აქვს განსხვავებული ფერის ფორმა, ეპოქის შესაბამისი სარდლის წოდება, ზოგიერთი მხედარი და XIX საუკუნის ჯარს მუშკეტერის ვიზუალური იარაღი.
