@@ -1,14 +1,29 @@
 # 🇬🇪 GEORGIA — ნარიყალას დაცვა
 
-**Alpha 1.06 — HISTORICAL ARMIES & ANDROID PREPARATION**
+**Alpha 1.07 — BILINGUAL UPDATABLE ANDROID RELEASE**
 
 დამოუკიდებელი 3D ბრაუზერული მოქმედებისა და ციხის მშენებლობის თამაში. მოთამაშე მართავს **დავით შავშეთელს**, გამოგონილ ქართველ რაინდსა და მშვილდოსანს. მას უნდა დაიცვას თბილისი და ნარიყალას ციხესიმაგრე, გადაარჩინოს სოფლის მცხოვრებლები და შეაჩეროს შემოსეული არმიების ტალღები.
 
-- **🎮 Player:** https://piraligame.github.io/georgia-game/?v=1.06
-- **🛠️ Developer:** https://piraligame.github.io/georgia-game/developer.html?v=1.06
+- **🎮 Player:** https://piraligame.github.io/georgia-game/?v=1.07
+- **🔒 Privacy:** https://piraligame.github.io/georgia-game/privacy.html
 - **რეპოზიტორია:** https://github.com/piraligame/georgia-game
 
 **GEORGIA სრულიად ცალკეა. PIRALI-ის კოდი და რეპოზიტორია არ იცვლება.**
+
+## Alpha 1.07 — ქართული / English და მუდმივი ხელმოწერა
+- მთავარი მენიუდან პაუზის ღილაკი დამალულია. თამაშში პაუზა ეკრანის ზედა ცენტრშია, უსაფრთხო ზედა არეზე.
+- ქართული და ინგლისური ენის გადამრთველი ხელმისაწვდომია მენიუში და თამაშის პაუზაში; ენის არჩევანი ინახება.
+- ინგლისურად ნათარგმნია თამაშის UI, საბრძოლო შეტყობინებები, ტალღები, ისტორიული ჯარები და სამშენებლო წარწერები.
+- შენახვა/გაგრძელება რჩება. თამაშის მდგომარეობა ავტომატურად ინახება.
+- მენიუს დაემატა კონფიდენციალურობის პოლიტიკის ბმული, რომელიც ასევე დაპაკეტებულია Android აპში.
+- Android `com.piraligame.georgia` — versionCode `2`, versionName `1.0.7`, targetSdk `36`.
+- APK და AAB ხელს აწერს ერთი და იგივე მუდმივი upload გასაღები, დაცული კომპიუტერში GitHub-ის გარეთ.
+- Play Store-სთვის მომზადებულია აღწერა, 512px ხატულა, 1024×500 სარეკლამო გრაფიკა და 1080×1920 სქრინშოტები ინგლისურად/ქართულად.
+- Android 1.06-ის debug APK-ს სხვა ციფრული ხელმოწერა ჰქონდა. თუ იგი დაყენებულია, შეიძლება საჭირო გახდეს **ერთჯერადი წაშლა** Alpha 1.07-ის დაყენებამდე (წინა შენახული პროგრესი შესაძლოა დაიკარგოს). შემდგომი 1.07+ release APK-ები ამ გასაღებით და გაზრდილი versionCode-ით განახლდება.
+- **APK / AAB:** https://github.com/piraligame/georgia-game/releases/tag/alpha-1.07
+- **Privacy:** https://piraligame.github.io/georgia-game/privacy.html
+
+
 
 ## 📱 Android Alpha 1.06 — სატესტო ჩამოტვირთვა
 - **APK — მობილურზე ინსტალაცია:** https://github.com/piraligame/georgia-game/releases/download/alpha-1.06/GEORGIA-Alpha-1.06-Android.apk

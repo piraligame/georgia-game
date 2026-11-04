@@ -1,9 +1,9 @@
 {
   "name": "georgia-game",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "private": true,
   "type": "module",
-  "description": "GEORGIA Narikala Alpha 1.06: historical armies, background autosave, pause, mobile Android target API 36",
+  "description": "GEORGIA Alpha 1.07: bilingual Georgian/English player, top-edge pause, signed updatable Android release",
   "scripts": {
     "start": "npx serve . -l 8080",
     "check": "node --check main.js",

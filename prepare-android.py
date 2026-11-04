@@ -3,7 +3,7 @@ import shutil
 root=Path(__file__).resolve().parent
 out=root/"www"
 out.mkdir(exist_ok=True)
-for filename in ("index.html","style.css","main.js","audio.js","favicon.svg"):
+for filename in ("index.html","style.css","main.js","audio.js","i18n.js","privacy.html","favicon.svg"):
     shutil.copy2(root/filename,out/filename)
 shutil.copytree(root/"assets",out/"assets",dirs_exist_ok=True)
 (out/"vendor").mkdir(exist_ok=True)

@@ -567,3 +567,21 @@ body:has(#villageBuilds:not(.hidden)) .structure-panel{bottom:max(420px,calc(env
 .pause-actions #resumeBtn,.pause-actions #menuReturnBtn{min-height:50px;padding:12px 6px;font-size:12px;font-weight:900}
 .guild-fb-link .guild-emblem{width:28px;height:28px;border-radius:50%;object-fit:cover;border:1px solid #f1d4a1;box-shadow:0 2px 8px #0019}
 @media(max-width:390px){#pauseBtn{top:89px!important}.pause-actions #resumeBtn,.pause-actions #menuReturnBtn{font-size:11px}}
+
+/* Alpha 1.07 — top-edge pause during gameplay only; fully hidden on menu/death/pause */
+#pauseBtn{position:fixed!important;top:max(2px,env(safe-area-inset-top))!important;left:50%!important;
+ right:auto!important;transform:translateX(-50%)!important;z-index:10!important;
+ height:37px!important;width:43px!important;padding:0!important}
+body:has(#intro:not(.hidden)) #pauseBtn,
+body:has(#over:not(.hidden)) #pauseBtn,
+body:has(#pauseOverlay:not(.hidden)) #pauseBtn{display:none!important}
+.language-picker{display:flex;align-items:center;justify-content:center;gap:9px;margin:7px auto}
+.language-choice{min-height:35px;padding:7px 12px;color:#fff6d7;
+ background:#1c3638;border:1px solid #718886;border-radius:9px;font-weight:800;font-size:12px}
+.language-choice.active{background:#bd8c47;color:#192322;border-color:#f7dba8;box-shadow:0 0 0 1px #f6daa7}
+.language-choice:focus-visible{outline:2px solid #f6da9c;outline-offset:2px}
+.intro-language{margin:5px auto 7px}
+.pause-language{margin:10px auto}
+@media(max-width:450px){.language-choice{padding:7px 9px;font-size:11px}}
+
+.privacy-link{display:block;margin:9px auto 4px;text-align:center;text-decoration:underline;color:#b2dce9;font-size:11px;line-height:1.4}.privacy-link:hover{color:#fff2bb}

@@ -70,3 +70,7 @@ update-alpha106-*.py
 *.aab
 *.apk
 .georgia-keys/
+
+Releases/
+store/
+gradle-signing.properties

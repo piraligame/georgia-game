@@ -1,5 +1,13 @@
 apply plugin: 'com.android.application'
 
+// Private signing values are stored outside GitHub and reused on every release.
+def georgiaSigningProperties = new Properties()
+def georgiaSigningFile = new File(System.getProperty('user.home'), 'Documents/GEORGIA-Release-Signing/gradle-signing.properties')
+if (georgiaSigningFile.exists()) {
+    georgiaSigningFile.withInputStream { input -> georgiaSigningProperties.load(input) }
+}
+
+
 android {
     namespace = "com.piraligame.georgia"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -7,8 +15,8 @@ android {
         applicationId "com.piraligame.georgia"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0.6"
+        versionCode 2
+        versionName "1.0.7"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,8 +24,19 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            if (georgiaSigningFile.exists()) {
+                storeFile file(georgiaSigningProperties.getProperty('storeFile'))
+                storePassword georgiaSigningProperties.getProperty('storePassword')
+                keyAlias georgiaSigningProperties.getProperty('keyAlias')
+                keyPassword georgiaSigningProperties.getProperty('keyPassword')
+            }
+        }
+    }
     buildTypes {
         release {
+            if (georgiaSigningFile.exists()) signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
