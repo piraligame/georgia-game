@@ -57,3 +57,16 @@ patch-alpha104-*.py
 alpha105-*.cjs
 alpha105-*.png
 patch-alpha105-*.py
+
+# Generated Android web build and local regression outputs
+www/
+alpha106-*.cjs
+alpha106-*.png
+patch-alpha106-*.py
+update-alpha106-*.py
+# Never publish Play upload keys or credentials
+*.jks
+*.keystore
+*.aab
+*.apk
+.georgia-keys/

@@ -1031,9 +1031,18 @@ const state={playing:false,dead:false,coins:185,wood:75,meteorCd:0,effects:[],sc
  dashCd:0,dashTime:0,volleyCd:0,lastTime:0,waveWait:0,betweenWaves:false,paused:false,waveEvent:'normal',miniTimer:0,uiCd:0};
 let facing=new THREE.Vector3(0,0,-1),movement=new THREE.Vector2(0,0),lastToast=0;
 const keys={};const joystick={x:0,y:0,pointer:null,visualLift:30};
+function pauseForInterruption(){
+ if(!state.playing||state.dead)return;
+ saveCheckpoint(true);
+ if(!state.paused)openPause();
+ for(const key in keys)keys[key]=false;
+ joystick.pointer=null;joystick.x=0;joystick.y=0;
+}
 document.addEventListener('visibilitychange',()=>{
-  if(document.hidden&&state.playing&&!state.paused&&!state.betweenWaves){saveCheckpoint(true);openPause()}
+ if(document.hidden)pauseForInterruption();
 });
+window.addEventListener('pagehide',pauseForInterruption);
+window.addEventListener('blur',pauseForInterruption);
 // The village grows from rescues instead of appearing fully built at the beginning.
 const settlementObjects=[];
 function addSettlementTier(tier){
@@ -1145,10 +1154,14 @@ function updateWeather(dt){
 }
 // Separate HISTORICAL FANTASY chapters: distinct real centuries, fictional knight and battles.
 const georgiaChapters=[
- {title:'I • მონღოლთა ალყა',subtitle:'XIII საუკუნე • დავით შავშეთელი იცავს თბილისს',era:'mongol',weather:'normal'},
- {title:'II • შაჰ-აბასის სპარსეთი',subtitle:'XVII საუკუნე • თბილისისთვის ბრძოლა',era:'persian',weather:'siege'},
- {title:'III • თბილისის განმათავისუფლებლები',subtitle:'ისტორიული ფენტეზი • ნარიყალას დაცვა',era:'mongol',weather:'archers'},
- {title:'IV • ნარიყალას საბოლოო დაცვა',subtitle:'ისტორიული ფენტეზი • სპარსეთის სარდლები',era:'persian',weather:'captain'}
+ {title:'I • არაბთა ლაშქრობა',subtitle:'VIII საუკუნით შთაგონებული • თბილისის დაცვა',era:'arab'},
+ {title:'II • სელჩუკთა შემოსევა',subtitle:'XI საუკუნე • მხედრები და მშვილდოსნები',era:'seljuk'},
+ {title:'III • ხვარაზმელთა ლაშქრობა',subtitle:'XIII საუკუნე • მძიმე რაზმები',era:'khwarezm'},
+ {title:'IV • მონღოლთა ალყა',subtitle:'XIII საუკუნე • მონღოლთა მხედრობა',era:'mongol'},
+ {title:'V • თემურის ლაშქრობები',subtitle:'XIV–XV საუკუნეები • ტიმურიდთა სარდლები',era:'timurid'},
+ {title:'VI • ოსმალთა ლაშქრობა',subtitle:'XVI საუკუნე • მტრის დიდი ალყა',era:'ottoman'},
+ {title:'VII • შაჰ-აბასის სპარსეთი',subtitle:'XVII საუკუნე • საფავიდთა რაზმები',era:'safavid'},
+ {title:'VIII • რუსეთის იმპერიის ჯარი',subtitle:'XIX საუკუნე • ოფიცრები და მუშკეტერები',era:'russian'}
 ];
 function eraForWave(wave){return georgiaChapters[Math.floor((wave-1)/4)%georgiaChapters.length]}
 function showChapter(){
@@ -1189,11 +1202,15 @@ const eventLabels={
 function launchEnemyArrow(enemy,targetType,targetObject=null){
  const arrow=new THREE.Group();const start=enemy.group.position;
  arrow.position.set(start.x,1.54,start.z);
- const darkFeather=materials.red;
- cyl(arrow,.045,.045,1.06,materials.wood);
- cone(arrow,.13,.29,materials.wall,0,.69,0);
- cube(arrow,.21,.045,.10,darkFeather,0,-.42,0);
- cube(arrow,.10,.045,.20,darkFeather,0,-.42,0);
+ if(enemy.faction==='russian'){
+   sphere(arrow,.14,materials.wall,0,0,0);
+ }else{
+   const darkFeather=materials.red;
+   cyl(arrow,.045,.045,1.06,materials.wood);
+   cone(arrow,.13,.29,materials.wall,0,.69,0);
+   cube(arrow,.21,.045,.10,darkFeather,0,-.42,0);
+   cube(arrow,.10,.045,.20,darkFeather,0,-.42,0);
+ }
  scene.add(arrow);
  const aim=targetType==='hero'?hero.group.position.clone():
     targetType==='guard'&&targetObject?targetObject.group.position.clone():castle.position.clone();
@@ -1309,7 +1326,13 @@ const checkpointKey=developerSave?'georgia-alpha10-developer-save':'georgia-alph
 const alpha09CheckpointKey=developerSave?'georgia-alpha09-developer-save':'georgia-alpha09-player-save';
 const previousCheckpointKey=developerSave?'georgia-alpha08-developer-save':'georgia-alpha08-player-save';
 const legacyCheckpointKey=developerSave?'georgia-alpha07-developer-save':'georgia-alpha07-player-save';
-let restartArmed=false;
+let restartArmed=false,autoSaveAccumulator=0;
+function clearCheckpoint(){
+ for(const key of [checkpointKey,alpha09CheckpointKey,previousCheckpointKey,legacyCheckpointKey]){
+   try{localStorage.removeItem(key)}catch{}
+ }
+ hasCheckpoint();
+}
 function loadSnapshot(){
  try{
    let data=null;
@@ -1446,7 +1469,8 @@ function restoreSnapshot(){
  ui();updateMissions();return true;
 }
 function openPause(){
- if(!state.playing||state.dead||state.betweenWaves)return;
+ if(!state.playing||state.dead)return;
+ saveCheckpoint(true);
  $('siteDock').classList.add('hidden');$('troopDock').classList.add('hidden');
  state.paused=true;
  $('pauseSummary').textContent='ტალღა '+state.wave+' • 🪙 '+state.coins+' • 🌲 '+state.wood+
@@ -1455,8 +1479,15 @@ function openPause(){
  restartArmed=false;$('restartBtn').textContent='↻ თავიდან დაწყება';
 }
 function closePause(){
- state.paused=false;contextUiTimer=0;$('pauseOverlay').classList.add('hidden');
+ state.paused=false;contextUiTimer=0;state.lastTime=performance.now();$('pauseOverlay').classList.add('hidden');
  for(const key in keys)keys[key]=false;
+}
+function returnToMainMenu(){
+ saveCheckpoint(true);state.playing=false;state.paused=true;
+ $('pauseOverlay').classList.add('hidden');$('rewardOverlay').classList.add('hidden');
+ $('intro').classList.remove('hidden');$('center').style.pointerEvents='auto';
+ joystick.pointer=null;joystick.x=0;joystick.y=0;
+ hasCheckpoint();
 }
 // Narikala's primary construction loop: physically walk ON a site and deposit coins.
 // Each step places coins in the site; progress persists when the player walks away.
@@ -2377,23 +2408,26 @@ function bossTitleSprite(name,group,y=4.45){
 function makeEnemy(reinforcement=false){
 const boss=!reinforcement&&state.wave%4===0&&state.spawned===state.waveTotal-1;
 const era=eraForWave(state.wave),mongol=era.era==='mongol';
-const shah=boss&&!mongol&&state.wave%8===0;
+const superBoss=boss&&state.wave%8===0;
+const shah=boss&&era.era==='safavid';
 const general=boss&&!shah;
 const ram=!reinforcement&&state.wave>=5&&state.wave%5===0&&state.spawned===state.waveTotal-1;
-const roll=Math.random(),cavalry=mongol&&!boss&&!ram&&roll>(reinforcement?.69:.81),
+const mountedCulture=['mongol','seljuk','khwarezm','timurid'].includes(era.era);
+const roll=Math.random(),cavalry=mountedCulture&&!boss&&!ram&&roll>(reinforcement?.69:.81),
  archer=state.wave>=2&&!cavalry&&roll<(reinforcement?.28:state.waveEvent==='archers'?.32:.15)&&!boss&&!ram,
   hard=!cavalry&&!archer&&!ram&&state.wave>=3&&roll<(reinforcement?.45:state.waveEvent==='siege'?.38:.17),
   fast=!cavalry&&!archer&&!ram&&state.wave>=2&&roll>.64;
+const factionColors={arab:0x897a5b,seljuk:0x72693a,khwarezm:0x64567b,
+ mongol:0x806047,timurid:0x547b82,ottoman:0x9e4b42,safavid:0x6d5685,russian:0x3e6d59};
 const p=person(ram?0x765c4b:shah?0x753f64:boss?0x945c42:cavalry?0x8e583f:
-  mongol?archer?0x9b754b:hard?0x685044:fast?0x936b41:0xa26b3d:
-  archer?0x5b7487:hard?0x923e45:fast?0x90623e:0x9f3e4d);
+ factionColors[era.era]||0x955e51);
 p.group.scale.setScalar(ram?1.6:shah?1.63:boss?1.50:cavalry?1.12:hard?1.28:fast?.93:1);
 if(cavalry||general){
  const animal=createHorse(p.group);
  p.body.position.y=1.18;p.body.scale.setScalar(cavalry?.82:.95);
  p.group.userData.horse=animal;
 }
-if(mongol&&!ram){
+if(['mongol','khwarezm','timurid'].includes(era.era)&&!ram){
  const helm=cone(p.body,.41,.49,mat(0x594d3f),0,2.14,0);
  cube(p.body,.22,.24,.13,materials.gold,0,2.00,.31);
 }else if(!ram){
@@ -2435,6 +2469,22 @@ if(archer){
   mesh(arm,new THREE.TubeGeometry(curved,12,.06,6,false),materials.wood);
   const cord=mesh(arm,new THREE.TubeGeometry(new THREE.LineCurve3(new THREE.Vector3(0,-.55,.2),new THREE.Vector3(0,.55,.2)),1,.015,4,false),materials.wall);
 }
+if(era.era==='russian'&&!ram){
+  cyl(p.body,.48,.42,.47,mat(0x263342),0,2.24,0);
+  cube(p.body,.76,.10,.16,materials.gold,0,2.44,.36);
+  cube(p.body,.78,.18,.18,mat(0xa94d48),0,1.57,.35);
+  if(archer){
+    const arm=p.body.userData.rightArm;
+    for(const obj of [...arm.children])arm.remove(obj);
+    const stock=cube(arm,.20,1.30,.15,materials.wood,.19,-.07,.35);
+    stock.rotation.z=-.17;
+    const barrel=cyl(arm,.07,.07,1.48,materials.wall,.31,.35,.35);
+    barrel.rotation.z=-.15;
+  }
+}else if(era.era==='ottoman'&&!ram){
+  cyl(p.body,.42,.38,.44,mat(0x9c353d),0,2.22,0);
+  cube(p.body,.95,.13,.16,materials.gold,0,1.55,.35);
+}
 if(!fast&&!archer){
   const shield=new THREE.Group();shield.position.set(-.54,1.15,.35);p.body.add(shield);
   const plate=cyl(shield,.44,.53,.09,boss?materials.gold:materials.wood);
@@ -2448,10 +2498,12 @@ if(fast){
 }
 if(boss){
  cube(p.body,1.12,.20,.64,materials.gold,0,1.43,-.2);
- bossTitleSprite(shah?'👑 შაჰ-აბასი • სიუჟეტური ბოსი':
-    mongol?'🏇 მონღოლთა გენერალი':'⚔️ სპარსეთის გენერალი',p.group,4.6);
- showToast(shah?'👑 შაჰ-აბასის არმიის შეტევა!':
-   mongol?'🏇 მონღოლთა გენერალი მოახლოვდა!':'👑 სპარსეთის გენერალი გამოჩნდა!');
+ const commanderTitles={arab:'⚔️ არაბთა ამირა',seljuk:'🏇 სელჩუკთა სარდალი',
+ khwarezm:'⚔️ ხვარაზმელთა მეთაური',mongol:'🏇 მონღოლთა გენერალი',
+ timurid:'⚔️ თემურის სარდალი',ottoman:'⚔️ ოსმალთა ფაშა',
+ safavid:'👑 შაჰ-აბასი',russian:'🎖️ რუსეთის იმპერიის ოფიცერი'};
+ bossTitleSprite(commanderTitles[era.era],p.group,4.6);
+ showToast((commanderTitles[era.era]||'⚔️ მტრის სარდალი')+' მოახლოვდა!');
 }
 const lanes=[0,Math.PI/4,Math.PI/2,Math.PI*3/4,Math.PI,Math.PI*5/4,Math.PI*3/2,Math.PI*7/4];
 const lane=reinforcement?
@@ -2462,7 +2514,7 @@ const angle=lane+rand(-.22,.22),
    rand(28+Math.min(12,state.wave*.45),35+Math.min(15,state.wave*.42));
 p.group.position.set(Math.cos(angle)*radius,0,Math.sin(angle)*radius);scene.add(p.group);
 // Strong enemy = 2 direct arrows; giant ram/general = 5; super-boss = 10.
-const arrowHits=shah?10:(ram||boss)?5:hard?2:1;
+const arrowHits=superBoss?10:(ram||boss)?5:hard?2:1;
 const pressure=1+Math.min(.55,(state.wave-1)*.020)+Math.min(.17,(state.castleLevel-1)*.032);
 const hp=Math.max(16,Math.ceil(state.damage*arrowHits*pressure));
 const enemyBar=new THREE.Group();enemyBar.position.y=ram?4.00:(boss&&(general||shah))?4.40:cavalry?3.5:hard?2.45:2.28;p.group.add(enemyBar);
@@ -2612,7 +2664,7 @@ function beginWave(){
  state.siegeMode=state.wave>=5&&state.wave%5===0;
  state.supportWaves=state.siegeMode?3:state.wave>=9?2:state.wave>=3?1:0;
  state.supportStage=0;state.supportQueued=0;state.supportSpawned=0;state.supportCd=0;
- state.waveTotal=18+state.wave*6+(state.siegeMode?14+Math.min(10,Math.floor(state.wave/5)*3):0);
+ state.waveTotal=Math.round((18+state.wave*6+(state.siegeMode?14+Math.min(10,Math.floor(state.wave/5)*3):0))*1.50);
  state.waveLeft=state.waveTotal;state.spawned=0;state.spawnCd=.35;state.waveWait=0;
  audio.play('wave',.52);
  showToast(state.siegeMode?'🔥 დიდი ალყა — მოემზადე!':
@@ -2657,9 +2709,10 @@ Object.assign(state,{playing:true,dead:false,coins:185,wood:75,meteorCd:0,score:
  spawnCd:0,waveLeft:0,spawned:0,waveTotal:0,siegeMode:false,supportWaves:0,supportStage:0,supportQueued:0,supportSpawned:0,supportCd:0,dashCd:0,dashTime:0,volleyCd:0,
  villagerGoal:1,rescued:0,lost:0,totalRescued:0,settlementTier:0,villageIncomeTimer:15,betweenWaves:false,paused:false,waveEvent:'normal',miniTimer:0,uiCd:0,waveWait:0});
 hero.group.position.set(0,0,3.1);hero.group.scale.setScalar(1.10);previousAimTarget=null;facing.set(0,0,-1);$('intro').classList.add('hidden');$('over').classList.add('hidden');$('guide').classList.add('hidden');$('center').style.pointerEvents='none';beginWave();ui()}
-function endGame(reason='hero'){if(state.dead)return;saveRecord(Math.max(0,state.wave-1));$('rewardOverlay').classList.add('hidden');audio.play('defeat');state.dead=true;state.playing=false;$('result').textContent=(reason==='castle'?'🏰 ციხესიმაგრე დაინგრა! ':'🏹 გმირი დამარცხდა! ')+'მიაღწიე '+state.wave+'-ე ტალღამდე • დაამარცხე '+state.kills+' მტერი • ააშენე '+state.builds.length+' ნაგებობა';$('over').classList.remove('hidden');$('center').style.pointerEvents='auto'}
+function endGame(reason='hero'){if(state.dead)return;saveRecord(Math.max(0,state.wave-1));clearCheckpoint();$('rewardOverlay').classList.add('hidden');audio.play('defeat');state.dead=true;state.playing=false;$('result').textContent=(reason==='castle'?'🏰 ციხესიმაგრე დაინგრა! ':'🏹 გმირი დამარცხდა! ')+'მიაღწიე '+state.wave+'-ე ტალღამდე • დაამარცხე '+state.kills+' მტერი • ააშენე '+state.builds.length+' ნაგებობა';$('over').classList.remove('hidden');$('center').style.pointerEvents='auto'}
 function frame(now){requestAnimationFrame(frame);const dt=Math.min(.17,Math.max(0,(now-(state.lastTime||now))/1000));state.lastTime=now;
 const pos=hero.group.position;
+if(state.playing&&!state.paused&&!state.dead){autoSaveAccumulator+=dt;if(autoSaveAccumulator>12){autoSaveAccumulator=0;saveCheckpoint(true)}}
 if(state.playing&&!state.betweenWaves&&!state.paused){
 let vx=(keys['d']||keys['arrowright']?1:0)-(keys['a']||keys['arrowleft']?1:0)+joystick.x;
 let vy=(keys['s']||keys['arrowdown']?1:0)-(keys['w']||keys['arrowup']?1:0)+joystick.y;
@@ -2986,6 +3039,7 @@ for(const kind of economyNames)if($(kind+'Btn'))$(kind+'Btn').onclick=()=>buildE
 $('recruitBtn').onclick=()=>recruitGuard('sword');
 $('pauseBtn').onclick=()=>state.paused?closePause():openPause();
 $('resumeBtn').onclick=closePause;
+$('menuReturnBtn').onclick=returnToMainMenu;
 $('saveBtn').onclick=()=>saveCheckpoint();
 $('restartBtn').onclick=()=>{
  if(!restartArmed){restartArmed=true;$('restartBtn').textContent='დადასტურება ↻';return}
@@ -3002,7 +3056,7 @@ camera.position.copy(cameraFollowPosition(hero.group.position));
 camera.lookAt(hero.group.position.x,1.05,hero.group.position.z);showRecord();hasCheckpoint();ui();updateMissions();drawMiniMap();requestAnimationFrame(frame);
 
 if(location.pathname.toLowerCase().includes('developer')){
-const panel=document.createElement('aside');panel.id='devPanel';panel.innerHTML='<div class="devtitle">🛠️ DEVELOPER • GEORGIA 1.05 • ნარიყალა</div><button id="devMoney">🪙 +1000</button><button id="devWood">🌲 +100</button><button id="devGuard">🛡️ მცველი</button><button id="devArcher">🏹 მოკავშირე</button><button id="devHealer">💚 მკურნალი</button><button id="devSiege">🪵 ტარანი</button><button id="devHorde">🔥 დიდი ტალღა</button><button id="devBuild">🎯 ბალისტა</button><button id="devSave">💾 Save</button><button id="devGod">🛡️ უკვდავება OFF</button><button id="devSkip">⏩ შემდეგი ტალღა</button><button id="devFull">❤️ შევსება</button><button id="devWalls">🏰 ყველა ნაგებობა</button>';document.body.append(panel);
+const panel=document.createElement('aside');panel.id='devPanel';panel.innerHTML='<div class="devtitle">🛠️ DEVELOPER • GEORGIA 1.06 • ნარიყალა</div><button id="devMoney">🪙 +1000</button><button id="devWood">🌲 +100</button><button id="devGuard">🛡️ მცველი</button><button id="devArcher">🏹 მოკავშირე</button><button id="devHealer">💚 მკურნალი</button><button id="devSiege">🪵 ტარანი</button><button id="devHorde">🔥 დიდი ტალღა</button><button id="devBuild">🎯 ბალისტა</button><button id="devSave">💾 Save</button><button id="devGod">🛡️ უკვდავება OFF</button><button id="devSkip">⏩ შემდეგი ტალღა</button><button id="devFull">❤️ შევსება</button><button id="devWalls">🏰 ყველა ნაგებობა</button>';document.body.append(panel);
 panel.classList.add('dev-closed');
 const toggle=document.createElement('button');
 toggle.id='devToggle';toggle.type='button';

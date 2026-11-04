@@ -1,0 +1,11 @@
+{
+  "appId": "com.piraligame.georgia",
+  "appName": "GEORGIA",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "backgroundColor": "#101c1b"
+  }
+}
