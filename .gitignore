@@ -48,3 +48,8 @@ alpha103-*.png
 patch-alpha103-*.py
 debug-alpha103-*.py
 fix-alpha103-*.py
+
+alpha104-*.cjs
+alpha104-*.png
+alpha104-*.py
+patch-alpha104-*.py

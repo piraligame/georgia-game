@@ -1,9 +1,9 @@
 {
   "name": "georgia-game",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "private": true,
   "type": "module",
-  "description": "GEORGIA Narikala Alpha 1.03 — expanded terrain, left-half joystick, building on the move, targeted enemy shot counts, worker orders, automatic barracks troops and fully upgraded tower models",
+  "description": "GEORGIA Narikala Alpha 1.04: low-zoom bottom terrain clipping fix, steady camera framing, and carefully harder enemy waves",
   "scripts": {
     "start": "npx serve . -l 8080",
     "check": "node --check main.js"

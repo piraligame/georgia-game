@@ -24,11 +24,26 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 $('game').appendChild(renderer.domElement);
-const camera = new THREE.OrthographicCamera(-13,13,9,-9,.1,260);
-let cameraZoom=.78; // Alpha 0.9 starts visibly farther from the battleground.
+const camera = new THREE.OrthographicCamera(-13,13,9,-9,.1,480);
+let cameraZoom=.78; // Player's existing zoom preference is retained.
+// Orthographic view: at low zoom the old camera sat too close to the ground.
+// Lower viewport rays started BELOW the ground, clipping the terrain and
+// exposing an empty sky-colored strip. Keep the same viewing angle and
+// projection while moving the camera back far enough to see all near terrain.
+function cameraFollowPosition(pos){
+ const zoomDistance=Math.max(1.47,1.04/cameraZoom);
+ return new THREE.Vector3(
+   pos.x+19*zoomDistance,
+   1.05+20.95*zoomDistance,
+   pos.z+19*zoomDistance
+ );
+}
 function setCameraZoom(value){
  cameraZoom=THREE.MathUtils.clamp(Number(value)||.78,.53,1.20);
  resize();
+ // Immediately reframe while zoom changes; do not wait for the lerped follow
+ // camera or show a temporarily empty strip at the bottom.
+ if(typeof hero!=='undefined')camera.position.copy(cameraFollowPosition(hero.group.position));
  if($('zoomLabel'))$('zoomLabel').textContent=Math.round(cameraZoom*100)+'%';
  try{localStorage.setItem('georgia-zoom-v1',String(cameraZoom))}catch{}
 }
@@ -2318,7 +2333,7 @@ const general=boss&&!shah;
 const ram=state.wave>=5&&state.wave%5===0&&state.spawned===state.waveTotal-1;
 const roll=Math.random(),cavalry=mongol&&!boss&&!ram&&roll>.81,
  archer=state.wave>=2&&!cavalry&&roll<(state.waveEvent==='archers'?.32:.15)&&!boss&&!ram,
-  hard=!cavalry&&!archer&&!ram&&state.wave>=3&&roll<(state.waveEvent==='siege'?.28:.11),
+  hard=!cavalry&&!archer&&!ram&&state.wave>=3&&roll<(state.waveEvent==='siege'?.31:.145),
   fast=!cavalry&&!archer&&!ram&&state.wave>=2&&roll>.64;
 const p=person(ram?0x765c4b:shah?0x753f64:boss?0x945c42:cavalry?0x8e583f:
   mongol?archer?0x9b754b:hard?0x685044:fast?0x936b41:0xa26b3d:
@@ -2533,7 +2548,7 @@ function build(kind,prepaid=false){
 function upgrade(){if(!state.playing||state.betweenWaves)return;const cost=60+(state.level-1)*35;if(state.coins<cost)return;state.coins-=cost;state.level++;state.damage+=7;state.maxHp+=18;state.hp=Math.min(state.maxHp,state.hp+35);state.maxFortHP+=25;state.fortHP=Math.min(state.maxFortHP,state.fortHP+55);hero.group.scale.setScalar(1.10+Math.min(state.level-1,4)*.045);audio.play('upgrade');showToast('⬆️ გმირი გაძლიერდა! დონე '+state.level);ui()}
 function heal(){if(!state.playing||state.betweenWaves||state.coins<35||state.hp>=state.maxHp)return;state.coins-=35;state.hp=Math.min(state.maxHp,state.hp+30);audio.play('coin',.45);showToast('❤️ სიცოცხლე აღდგენილია');ui()}
 function dash(){if(state.dashCd>0||!state.playing||state.betweenWaves)return;state.dashTime=.22;state.dashCd=3;audio.play('dash');showToast('⚡ სწრაფი მოძრაობა')}
-function beginWave(){state.betweenWaves=false;showChapter();state.waveEvent=decideWaveEvent(state.wave);state.eventBannerTime=4.2;$('eventBadge').textContent=eventLabels[state.waveEvent];$('eventBadge').classList.remove('hidden');spawnVillagers();state.waveTotal=18+state.wave*5;state.waveLeft=state.waveTotal;state.spawned=0;state.spawnCd=.35;state.waveWait=0;audio.play('wave',.52);showToast('🇬🇪 '+eraForWave(state.wave).title+' • ტალღა '+state.wave);ui()}
+function beginWave(){state.betweenWaves=false;showChapter();state.waveEvent=decideWaveEvent(state.wave);state.eventBannerTime=4.2;$('eventBadge').textContent=eventLabels[state.waveEvent];$('eventBadge').classList.remove('hidden');spawnVillagers();state.waveTotal=18+state.wave*6;state.waveLeft=state.waveTotal;state.spawned=0;state.spawnCd=.35;state.waveWait=0;audio.play('wave',.52);showToast('🇬🇪 '+eraForWave(state.wave).title+' • ტალღა '+state.wave);ui()}
 
 function reset(){for(const name of ['enemies','builds','shots','pickups','particles','villagers','economy','guards','enemyShots','hazards','effects']){for(const item of state[name]){
  if(name==='shots'||name==='enemyShots')disposeProjectile(item.mesh);
@@ -2593,7 +2608,7 @@ if(state.waveLeft>0){
  const concurrentMax=innerWidth<760?46:75;
  if(state.spawnCd<=0&&state.enemies.length<concurrentMax){
    makeEnemy();state.waveLeft--;
-   state.spawnCd=Math.max(.13,(.31-state.wave*.008)*(state.waveEvent==='rush'?.72:1));
+   state.spawnCd=Math.max(.14,(.294-state.wave*.008)*(state.waveEvent==='rush'?.72:1));
  }
 }
 else if(state.enemies.length===0){state.waveWait+=dt;
@@ -2688,11 +2703,11 @@ for(const enemy of [...state.enemies]){
         }
       }
     }else if(targetingCastle){
-      state.fortHP=Math.max(0,state.fortHP-(7+state.wave*.7)*(state.waveEvent==='siege'?1.45:1)*(enemy.type==='ram'?3.2:1));
+      state.fortHP=Math.max(0,state.fortHP-(7.7+state.wave*.77)*(state.waveEvent==='siege'?1.45:1)*(enemy.type==='ram'?3.2:1));
       audio.play('damage',.35);for(let i=0;i<3;i++)particle(ep.x,1,ep.z,0xff684e);
       if(state.fortHP<=0)endGame('castle');
     }else if(state.dashTime<=0){
-      state.hp=Math.max(0,state.hp-Math.max(4,8+state.wave*.35-state.level*.5));
+      state.hp=Math.max(0,state.hp-Math.max(4,9+state.wave*.42-state.level*.5));
       audio.play('damage',.7);for(let i=0;i<3;i++)particle(pos.x,1,pos.z,0xff5555);
       if(state.hp<=0)endGame('hero');
     }
@@ -2799,7 +2814,10 @@ for(const torch of castleTorches){
   torch.flame.rotation.y+=dt*.55;
 }
 flag.rotation.y=-.35+Math.sin(now*.0017)*.075;
-const desired=new THREE.Vector3(pos.x+19,22,pos.z+19);camera.position.lerp(desired,Math.min(1,dt*2.5));camera.lookAt(pos.x,1.05,pos.z);renderer.render(scene,camera)}
+const desired=cameraFollowPosition(pos);
+camera.position.lerp(desired,Math.min(1,dt*3.4));
+camera.lookAt(pos.x,1.05,pos.z);
+renderer.render(scene,camera)}
 function resize(){
  const width=innerWidth,height=innerHeight,aspect=width/height;
  const view=(width<760?18.5:21.0)/cameraZoom;
@@ -2889,7 +2907,8 @@ $('recruitNearbyBtn').onclick=()=>{
 };
 $('upgradeHeroQuick').onclick=upgrade;
 $('wallBtn').onclick=()=>build('wall');$('towerBtn').onclick=()=>build('tower');$('trapBtn').onclick=()=>build('trap');$('ballistaBtn').onclick=()=>build('ballista');$('upgradeBtn').onclick=upgrade;$('healBtn').onclick=heal;$('dashBtn').onclick=dash;$('startBtn').onclick=()=>{audio.unlock();reset();saveCheckpoint(true)};$('againBtn').onclick=()=>{audio.unlock();reset();saveCheckpoint(true)};
-camera.position.set(21,22,22);camera.lookAt(0,0,0);showRecord();hasCheckpoint();ui();updateMissions();drawMiniMap();requestAnimationFrame(frame);
+camera.position.copy(cameraFollowPosition(hero.group.position));
+camera.lookAt(hero.group.position.x,1.05,hero.group.position.z);showRecord();hasCheckpoint();ui();updateMissions();drawMiniMap();requestAnimationFrame(frame);
 
 if(location.pathname.toLowerCase().includes('developer')){
 const panel=document.createElement('aside');panel.id='devPanel';panel.innerHTML='<div class="devtitle">🛠️ DEVELOPER • GEORGIA 1.01 • ნარიყალა</div><button id="devMoney">🪙 +1000</button><button id="devWood">🌲 +100</button><button id="devGuard">🛡️ მცველი</button><button id="devArcher">🏹 მოკავშირე</button><button id="devHealer">💚 მკურნალი</button><button id="devSiege">🪵 ტარანი</button><button id="devHorde">🔥 დიდი ტალღა</button><button id="devBuild">🎯 ბალისტა</button><button id="devSave">💾 Save</button><button id="devGod">🛡️ უკვდავება OFF</button><button id="devSkip">⏩ შემდეგი ტალღა</button><button id="devFull">❤️ შევსება</button><button id="devWalls">🏰 ყველა ნაგებობა</button>';document.body.append(panel);
