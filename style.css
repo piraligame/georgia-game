@@ -522,3 +522,23 @@ body:has(#villageBuilds:not(.hidden)) .structure-panel{bottom:max(420px,calc(env
  .site-dock.has-troops{bottom:279px}
  .site-choices,.troop-choices{max-height:31vh}
 }
+
+/* Alpha 1.03: non-overlapping event, toast and combo information */
+#eventBadge{top:242px!important;right:5px!important;max-width:113px!important;z-index:5}
+#toast{top:284px!important;right:5px!important;max-width:122px!important;z-index:5}
+#comboFlash{position:fixed!important;top:122px!important;bottom:auto!important;right:5px!important;left:auto!important;
+ transform:none!important;max-width:115px!important;font-size:10px!important;padding:4px 6px!important;z-index:5}
+@media(max-height:750px){
+ #eventBadge{top:213px!important}
+ #toast{top:247px!important}
+ #comboFlash{top:112px!important}
+}
+
+/* Alpha 1.03 - primary action still prominent, workers contextual only */
+#siteWorkerBtn,#siteWeaponBtn{min-height:37px;font-size:11px}
+#siteWorkerBtn.hidden,#siteWeaponBtn.hidden{display:none!important}
+.site-dock{max-height:min(48vh,420px);overflow-y:auto;overscroll-behavior:contain}
+#siteBuildBtn{min-height:48px;font-size:13px}
+#siteDock{pointer-events:auto}
+#comboFlash{top:112px!important;right:5px!important;max-width:120px}
+@media(max-width:780px){#siteWorkerBtn,#siteWeaponBtn{font-size:10px;min-height:37px}}

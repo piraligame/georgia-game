@@ -1,9 +1,9 @@
 {
   "name": "georgia-game",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "private": true,
   "type": "module",
-  "description": "GEORGIA Narikala Alpha 1.02 — one-tap contextual building, 9 economic structures, five allied unit classes, tactical orders and fortress repair",
+  "description": "GEORGIA Narikala Alpha 1.03 — expanded terrain, left-half joystick, building on the move, targeted enemy shot counts, worker orders, automatic barracks troops and fully upgraded tower models",
   "scripts": {
     "start": "npx serve . -l 8080",
     "check": "node --check main.js"
