@@ -20,7 +20,7 @@ scene.fog = new THREE.FogExp2(0x9ac9b7, .009);
 const renderer = new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance'});
 // Scalable resolution avoids sustained overheating on phones with large late-game armies.
 const mobileRenderer=innerWidth<760;
-let gamePixelRatio=Math.min(devicePixelRatio||1,mobileRenderer?1.12:1.5);
+let gamePixelRatio=Math.min(devicePixelRatio||1,mobileRenderer?1.05:1.5);
 renderer.setPixelRatio(gamePixelRatio);
 let fpsTime=0,fpsFrames=0,fpsGoodStreak=0;
 function tuneGraphics(dt){
@@ -32,9 +32,9 @@ function tuneGraphics(dt){
    gamePixelRatio=Math.max(.76,gamePixelRatio-.12);
    renderer.setPixelRatio(gamePixelRatio);
    fpsGoodStreak=0;
- }else if(fps>57&&gamePixelRatio<1.12){
+ }else if(fps>57&&gamePixelRatio<1.05){
    if(++fpsGoodStreak>=4){
-     gamePixelRatio=Math.min(1.12,gamePixelRatio+.08);
+     gamePixelRatio=Math.min(1.05,gamePixelRatio+.08);
      renderer.setPixelRatio(gamePixelRatio);
      fpsGoodStreak=0;
    }
@@ -108,6 +108,7 @@ function rand(min,max){return min+Math.random()*(max-min)}
 function dist2(a,b){return Math.hypot(a.x-b.x,a.z-b.z)}
 const floor=mesh(scene,new THREE.PlaneGeometry(420,420),materials.grass);
 floor.rotation.x=-Math.PI/2;floor.position.y=-.06;floor.castShadow=false;
+const staticScenery=new THREE.Group();scene.add(staticScenery);
 const patchMat=[
   new THREE.MeshBasicMaterial({color:0x98bb7d,transparent:true,opacity:.14,depthWrite:false,side:THREE.DoubleSide}),
   new THREE.MeshBasicMaterial({color:0x62975f,transparent:true,opacity:.12,depthWrite:false,side:THREE.DoubleSide}),
@@ -115,7 +116,7 @@ const patchMat=[
 ];
 for(let i=0;i<260;i++){
   const x=rand(-155,155),z=rand(-155,155);
-  const patch=mesh(scene,new THREE.CircleGeometry(rand(.65,1.7),9),patchMat[i%3],x,-.044,z);
+  const patch=mesh(staticScenery,new THREE.CircleGeometry(rand(.65,1.7),9),patchMat[i%3],x,-.044,z);
   patch.rotation.x=-Math.PI/2;patch.rotation.z=rand(0,6.28);
   patch.scale.set(rand(.5,1.85),rand(.65,1.55),1);
   patch.castShadow=false;
@@ -153,8 +154,8 @@ drawVillagePath([[-9,-67],[-13,-44],[-16,-28]],1.68);
 // Larger field allows continued battles and construction while zoomed in.
 const ambientTrees=[];
 const trunkMat=mat(0x70583b),leaf1=mat(0x36774d),leaf2=mat(0x5b9255),leaf3=mat(0x739e5d);
-for(let i=0;i<130;i++){let x=rand(-94,94),z=rand(-94,94);if(Math.hypot(x,z)<11)continue;const t=new THREE.Group();t.position.set(x,0,z);cyl(t,.25,.35,2.3,trunkMat,0,1,0);cone(t,1.5,3.5,[leaf1,leaf2,leaf3][i%3],0,3.5,0);cone(t,1.15,3,[leaf1,leaf2,leaf3][(i+1)%3],0,5,0);t.scale.setScalar(rand(.7,1.25));t.userData.wind=rand(0,6.28);scene.add(t);if(i%2===0)ambientTrees.push(t)}
-for(let i=0;i<115;i++){let x=rand(-74,74),z=rand(-74,74);if(Math.hypot(x,z)<6)continue;const g=new THREE.Group();g.position.set(x,0,z);if(i%3===0){sphere(g,rand(.17,.35),materials.rock,0,.1,0)}else{cone(g,.32,rand(.45,.85),i%2?leaf2:leaf3,0,.28,0)}scene.add(g)}
+for(let i=0;i<130;i++){let x=rand(-94,94),z=rand(-94,94);if(Math.hypot(x,z)<11)continue;const t=new THREE.Group();t.position.set(x,0,z);cyl(t,.25,.35,2.3,trunkMat,0,1,0);cone(t,1.5,3.5,[leaf1,leaf2,leaf3][i%3],0,3.5,0);cone(t,1.15,3,[leaf1,leaf2,leaf3][(i+1)%3],0,5,0);t.scale.setScalar(rand(.7,1.25));t.userData.wind=rand(0,6.28);staticScenery.add(t);if(i%2===0&&!mobileRenderer)ambientTrees.push(t)}
+for(let i=0;i<115;i++){let x=rand(-74,74),z=rand(-74,74);if(Math.hypot(x,z)<6)continue;const g=new THREE.Group();g.position.set(x,0,z);if(i%3===0){sphere(g,rand(.17,.35),materials.rock,0,.1,0)}else{cone(g,.32,rand(.45,.85),i%2?leaf2:leaf3,0,.28,0)}staticScenery.add(g)}
 
 // Old Tbilisi's hillside silhouettes, rocky Narikala ridge and distant Mtkvari river.
 // Stylized fiction set in Georgian historical landscapes, not a literal architectural reconstruction.
@@ -526,14 +527,15 @@ function wallGeometry(group,level){
 // Batch static opaque meshes of each completed building by material.
 // Late-game forts contain thousands of tiny model parts; batching them cuts
 // draw calls while leaving animated tower archers, hitboxes and labels intact.
-function batchBuildingMeshes(root,excluded=[]){
+function batchBuildingMeshes(root,excluded=[],allowScenery=false){
  if(!mobileRenderer||!root)return;
  root.updateWorldMatrix(true,true);
  const invert=new THREE.Matrix4().copy(root.matrixWorld).invert();
  const groups=new Map();
  root.traverse(node=>{
-   if(!node.isMesh||!node.visible||!node.material?.isMeshStandardMaterial||
-       node.material.transparent||!node.geometry)return;
+   if(!node.isMesh||!node.visible||
+       !(node.material?.isMeshStandardMaterial||(allowScenery&&node.material?.isMeshBasicMaterial))||
+       (node.material.transparent&&!allowScenery)||!node.geometry)return;
    let ancestor=node;
    while(ancestor&&ancestor!==root){
      if(excluded.includes(ancestor))return;
@@ -601,7 +603,13 @@ function optimizeBuildingVisual(b){
  if(root===b.group&&b.decor)excluded.push(b.decor);
  batchBuildingMeshes(root,excluded);
 }
-function rebuildWall(b){
+// Render distant landscape as a few large static mesh batches on phones.
+ // This preserves detailed moving people and reduces hundreds of GPU draw calls.
+ if(mobileRenderer){
+   batchBuildingMeshes(staticScenery,[],true);
+   batchBuildingMeshes(oldTbilisi,[],false);
+ }
+ function rebuildWall(b){
  if(!b||b.kind!=='wall')return;
  if(b.group.userData.wallVisual){
    const prior=b.group.userData.wallVisual;
@@ -1149,56 +1157,63 @@ const state={playing:false,dead:false,coins:185,wood:75,meteorCd:0,effects:[],sc
  spawnCd:0,waveLeft:0,spawned:0,waveTotal:0,siegeMode:false,supportWaves:0,supportStage:0,supportQueued:0,supportSpawned:0,supportCd:0,builds:[],enemies:[],shots:[],pickups:[],particles:[],
  villagers:[],economy:[],guards:[],enemyShots:[],hazards:[],villagerGoal:1,rescued:0,lost:0,totalRescued:0,settlementTier:0,villageIncomeTimer:15,
  dashCd:0,dashTime:0,volleyCd:0,lastTime:0,waveWait:0,betweenWaves:false,paused:false,waveEvent:'normal',miniTimer:0,uiCd:0};
-// Mobile-only far-distance soldier LOD: instanced silhouettes replace hundreds
-// of skinned accessories per enemy. Nearby combat always uses full 3D models.
-const farBody=mobileRenderer?new THREE.InstancedMesh(
-  new THREE.CylinderGeometry(.43,.55,1.54,6),
-  new THREE.MeshStandardMaterial({color:0xffffff,roughness:.95}),64):null;
-const farHead=mobileRenderer?new THREE.InstancedMesh(
-  new THREE.SphereGeometry(.31,7,5),materials.skin,64):null;
-if(farBody){
- for(const part of [farBody,farHead]){
-   part.count=0;part.castShadow=false;part.receiveShadow=false;
-   part.frustumCulled=false;part.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-   scene.add(part);
- }
-}
-const farMatrix=new THREE.Matrix4(),farPosition=new THREE.Vector3(),
-  farScale=new THREE.Vector3(),farQuaternion=new THREE.Quaternion(),
-  farColor=new THREE.Color(),farUpAxis=new THREE.Vector3(0,1,0);
-let farVisibleCount=0;
-function addFarEnemy(enemy){
- if(!farBody||farVisibleCount>=64)return;
- const index=farVisibleCount++,ePos=enemy.group.position;
- const scale=enemy.group.scale.x,cosmeticScale=Math.min(1.38,scale);
- farQuaternion.setFromAxisAngle(farUpAxis,enemy.group.rotation.y);
- farPosition.set(ePos.x,.90*cosmeticScale,ePos.z);
- farScale.set(cosmeticScale,cosmeticScale,cosmeticScale);
- farMatrix.compose(farPosition,farQuaternion,farScale);
- farBody.setMatrixAt(index,farMatrix);
- farColor.setHex(enemy.lodColor||0x9e6653);
- farBody.setColorAt(index,farColor);
- farPosition.y=1.91*cosmeticScale;
- farMatrix.compose(farPosition,farQuaternion,farScale);
- farHead.setMatrixAt(index,farMatrix);
-}
-function finishFarEnemies(){
- if(!farBody)return;
- farBody.count=farVisibleCount;farHead.count=farVisibleCount;
- if(farVisibleCount){
-   farBody.instanceMatrix.needsUpdate=true;
-   farHead.instanceMatrix.needsUpdate=true;
-   farBody.instanceColor.needsUpdate=true;
- }
-}
+// All armies keep their complete human/horse models at every viewing distance.
+ // The former cylinder/sphere distant substitute was removed; no model popping.
+ const consistentEnemySilhouettes=true;
 let facing=new THREE.Vector3(0,0,-1),movement=new THREE.Vector2(0,0),lastToast=0;
-const keys={};const joystick={x:0,y:0,pointer:null,visualLift:30};
+const keys={};const joystick={x:0,y:0,pointer:null,cx:0,cy:0,side:'left',deadZone:.11};
+try{joystick.side=localStorage.getItem('georgia-control-hand-v1')==='right'?'right':'left'}catch{}
+function switchControlHand(){
+  releaseJoystick();
+  joystick.side=joystick.side==='left'?'right':'left';
+  try{localStorage.setItem('georgia-control-hand-v1',joystick.side)}catch{}
+  applyControlHand();
+}
+function applyControlHand(){
+ document.body.classList.toggle('joystick-right',joystick.side==='right');
+ const label=joystick.side==='right'?'✋ მარჯვენა ხელით':'✋ მარცხენა ხელით';
+ for(const element of document.querySelectorAll('.control-hand-toggle')){
+   element.textContent=label;
+   element.setAttribute('aria-label',label);
+ }
+}
+function releaseJoystick(){
+ joystick.pointer=null;joystick.x=0;joystick.y=0;
+ const base=$('joystick');
+ if(base)base.classList.remove('active');
+ if($('stick'))$('stick').style.transform='translate(0px,0px)';
+}
+function joystickCenter(){
+ const b=$('joystick').getBoundingClientRect();
+ return {x:(b.left+b.right)/2,y:(b.top+b.bottom)/2,allowed:Math.min(b.width/2+14,72)};
+}
+function initHandControls(){
+ const menu=$('intro');
+ const launch=$('startBtn');
+ const pause=$('pauseOverlay')?.querySelector('.pause-actions');
+ for(const [host,before] of [[menu,launch],[pause,null]]){
+   if(!host)continue;
+   const button=document.createElement('button');
+   button.type='button';button.className='control-hand-toggle';
+   button.addEventListener('click',switchControlHand);
+   if(before)host.insertBefore(button,before);else host.append(button);
+ }
+ const thumbDash=document.createElement('button');
+ thumbDash.id='thumbDashBtn';
+ thumbDash.type='button';
+ thumbDash.textContent='⚡';
+ thumbDash.setAttribute('aria-label','ცალი ხელით სწრაფი მოძრაობა');
+ thumbDash.addEventListener('click',dash);
+ document.body.append(thumbDash);
+ applyControlHand();
+}
+
 function pauseForInterruption(){
  if(!state.playing||state.dead)return;
  saveCheckpoint(true);
  if(!state.paused)openPause();
  for(const key in keys)keys[key]=false;
- joystick.pointer=null;joystick.x=0;joystick.y=0;
+ releaseJoystick();
 }
 document.addEventListener('visibilitychange',()=>{
  if(document.hidden)pauseForInterruption();
@@ -1688,7 +1703,7 @@ function closePause(){
  state.paused=false;contextUiTimer=0;state.lastTime=performance.now();$('pauseOverlay').classList.add('hidden');
  for(const key in keys)keys[key]=false;
 }
-function returnToMainMenu(){
+function returnToMainMenu(){releaseJoystick();
  saveCheckpoint(true);state.playing=false;state.paused=true;
  $('pauseOverlay').classList.add('hidden');$('rewardOverlay').classList.add('hidden');
  $('intro').classList.remove('hidden');$('center').style.pointerEvents='auto';
@@ -2746,7 +2761,7 @@ function hitEnemy(e,dmg){audio.play('impact',e.hp<=dmg?.54:.38);
   state.combo=state.comboTimer>0?Math.min(8,state.combo+1):1;state.comboTimer=2.7;
   state.score+=Math.floor(e.reward*10*(1+.16*(state.combo-1)));
   coin(pos.x,pos.z,e.reward);for(let i=0;i<5;i++)particle(pos.x,1,pos.z,0xffd36b);if(state.kills%25===0)showToast('⚔️ '+state.kills+' მტერი • შესანიშნავია!')}}
-function particle(x,y,z,color){if(state.particles.length>=(mobileRenderer?85:130))return;const p=sphere(scene,.1,new THREE.MeshBasicMaterial({color,transparent:true,opacity:1}),x,y,z);p.castShadow=false;state.particles.push({mesh:p,vx:rand(-2,2),vy:rand(1,4),vz:rand(-2,2),life:.55})}
+function particle(x,y,z,color){if(state.particles.length>=(mobileRenderer?64:130))return;const p=sphere(scene,.1,new THREE.MeshBasicMaterial({color,transparent:true,opacity:1}),x,y,z);p.castShadow=false;state.particles.push({mesh:p,vx:rand(-2,2),vy:rand(1,4),vz:rand(-2,2),life:.55})}
 // Reclaim unique geometries and materials when large enemy waves or upgraded models vanish.
 const sharedMaterials=new Set(Object.values(materials));
 function disposeActor(group){
@@ -2903,7 +2918,7 @@ function scheduleEnemyReinforcements(){
  audio.play('wave',.40);
 }
 
-function reset(){farVisibleCount=0;finishFarEnemies();for(const name of ['enemies','builds','shots','pickups','particles','villagers','economy','guards','enemyShots','hazards','effects']){for(const item of state[name]){
+function reset(){releaseJoystick();for(const name of ['enemies','builds','shots','pickups','particles','villagers','economy','guards','enemyShots','hazards','effects']){for(const item of state[name]){
  if(name==='shots'||name==='enemyShots')disposeProjectile(item.mesh);
  else if(name==='particles'){scene.remove(item.mesh);if(!cachedGeometries.has(item.mesh.geometry))item.mesh.geometry.dispose();item.mesh.material.dispose()}
  else if(name==='effects'){
@@ -2957,7 +2972,8 @@ if(target && state.attackCd<=0){
   if(hero.body.userData.rig){hero.body.userData.rig.draw=0;hero.body.userData.rig.shotFlash=1;}
 }else{}
 animateArcher(hero.body,now,!!target,dt,l>.05,state.dashTime>0);
-const concurrentMax=mobileRenderer?31:54; // Time-sliced waves preserve enemy totals without excessive draw calls.
+// All enemy units remain full fidelity; cap concurrent meshes, NOT total wave size.
+const concurrentMax=mobileRenderer?(gamePixelRatio<.85?20:25):54;
 scheduleEnemyReinforcements();
 state.supportCd=Math.max(0,(state.supportCd||0)-dt);
 if(state.supportQueued>0&&state.supportCd<=0&&state.enemies.length<concurrentMax-2){
@@ -2973,7 +2989,6 @@ if(state.waveLeft>0){
 else if(state.enemies.length===0&&state.supportQueued===0&&state.supportStage>=state.supportWaves){state.waveWait+=dt;
   if(state.waveWait>1.9)presentWaveRewards();
 }
-farVisibleCount=0;
 for(const enemy of [...state.enemies]){
   const ep=enemy.group.position;
   if((enemy.stun||0)>0){
@@ -3008,9 +3023,8 @@ for(const enemy of [...state.enemies]){
     ep.z-=dirz/Math.max(dist,.1)*enemy.speed*.6*dt;
   }
   if(dist>.15)turnActor(enemy.group,Math.atan2(dirx,dirz),dt,10);
-  const isFar=mobileRenderer&&dist2(ep,pos)>(state.enemies.length>18?9.5:13);
-  enemy.group.visible=!isFar;
-  if(isFar)addFarEnemy(enemy);
+  // The same full-size animated character is displayed across the whole battlefield.
+  enemy.group.visible=true;
   enemy.body.position.y=(enemy.type==='ram'?.95:enemy.group.userData.horse?1.18:0)+Math.abs(Math.sin(now*.011+ep.x))*.075;
   if(enemy.group.userData.horse){
     enemy.group.userData.horse.rotation.x=Math.sin(now*.009+ep.x)*.025;
@@ -3019,13 +3033,13 @@ for(const enemy of [...state.enemies]){
   if(enemy.type==='ram'&&enemy.group.userData.ramCart){
      for(const w of enemy.group.userData.ramCart.userData.wheels||[])w.rotation.x+=dt*enemy.speed*2.6;
   }
-  if(!isFar)moveActorLegs(enemy.body,now+ep.x*300,!enemy.group.userData.horse&&dist>1.25,dt,enemy.speed/2.2);
-  if(!isFar&&enemy.body.userData.rightArm)enemy.body.userData.rightArm.rotation.x= -.22+Math.sin(now*.013+ep.z)*.16;
-  if(!isFar&&enemy.body.userData.leftArm)enemy.body.userData.leftArm.rotation.x=.14-Math.sin(now*.013+ep.z)*.16;
+  moveActorLegs(enemy.body,now+ep.x*300,!enemy.group.userData.horse&&dist>1.25,dt,enemy.speed/2.2);
+  if(enemy.body.userData.rightArm)enemy.body.userData.rightArm.rotation.x= -.22+Math.sin(now*.013+ep.z)*.16;
+  if(enemy.body.userData.leftArm)enemy.body.userData.leftArm.rotation.x=.14-Math.sin(now*.013+ep.z)*.16;
   enemy.cd-=dt;enemy.hit=Math.max(0,enemy.hit-dt);
-  if(!isFar)enemy.body.scale.setScalar(enemy.hit>0?1.08:1);
-  if(!isFar)enemy.body.rotation.z=THREE.MathUtils.lerp(enemy.body.rotation.z,enemy.hit>0?.25:0,Math.min(1,dt*16));
-  if(!isFar)enemy.body.userData.head.rotation.y=Math.sin(now*.003+ep.x)*.08;
+  enemy.body.scale.setScalar(enemy.hit>0?1.08:1);
+  enemy.body.rotation.z=THREE.MathUtils.lerp(enemy.body.rotation.z,enemy.hit>0?.25:0,Math.min(1,dt*16));
+  enemy.body.userData.head.rotation.y=Math.sin(now*.003+ep.x)*.08;
   if(enemy.barFront){
     const width=(enemy.type==='captain'||enemy.type==='ram'?1.23:.88);
     enemy.barFront.scale.x=Math.max(.008,enemy.hp/enemy.maxHp);
@@ -3066,7 +3080,6 @@ for(const enemy of [...state.enemies]){
     }
   }
 }
-finishFarEnemies();
 for(const b of state.builds){
   if(b.kind!=='tower'&&b.kind!=='trap'&&b.kind!=='ballista')continue;
   b.cd-=dt;
@@ -3158,7 +3171,6 @@ animateSlots(now);
 state.miniTimer-=dt;if(state.miniTimer<=0){state.miniTimer=.40;drawMiniMap()}
 state.uiCd-=dt;if(state.uiCd<=0){state.uiCd=.19;ui()}
 }
-if(!state.playing){farVisibleCount=0;finishFarEnemies()}
 updateWeather(dt);
 if(!mobileRenderer||Math.floor(now/33)%2===0)for(const tree of ambientTrees){
   tree.rotation.z=Math.sin(now*.0011+tree.userData.wind)*.008;
@@ -3191,41 +3203,46 @@ addEventListener('keydown',ev=>{const k=ev.key.toLowerCase();keys[k]=true;if([' 
 if(k==='h'&&!ev.repeat)recruitGuard('archer');if(k==='j'&&!ev.repeat)recruitGuard('healer');
 if(k==='3'&&!ev.repeat)changeBuildMode('army');if(k==='-'&&!ev.repeat)setCameraZoom(cameraZoom-.08);if(k==='='&&!ev.repeat)setCameraZoom(cameraZoom+.08)});
 addEventListener('keyup',ev=>{keys[ev.key.toLowerCase()]=false});
-addEventListener('blur',()=>{for(const key in keys)keys[key]=false;joystick.x=0;joystick.y=0;setStick(0,0)});
+addEventListener('blur',()=>{for(const key in keys)keys[key]=false;releaseJoystick()});
 const base=$('joystick'),stick=$('stick');
-function setStick(x,y){stick.style.transform='translate('+x*32+'px,'+y*32+'px)'}
+function setStick(x,y){stick.style.transform='translate('+x*28+'px,'+y*28+'px)'}
 function moveStick(ev){
-  if(joystick.pointer!==ev.pointerId)return;
-  let x=(ev.clientX-joystick.cx)/43,y=(ev.clientY-joystick.cy)/43;
-  const len=Math.max(1,Math.hypot(x,y));x/=len;y/=len;
-  joystick.x=x;joystick.y=y;setStick(x,y);
+ if(joystick.pointer!==ev.pointerId)return;
+ const dx=ev.clientX-joystick.cx,dy=ev.clientY-joystick.cy;
+ const distance=Math.hypot(dx,dy),magnitude=Math.min(1,distance/49);
+ const normalized=Math.max(0,(magnitude-joystick.deadZone)/(1-joystick.deadZone));
+ const strength=normalized*normalized*.25+normalized*.75;
+ const aimX=distance<1?0:dx/distance*strength;
+ const aimY=distance<1?0:dy/distance*strength;
+ joystick.x=THREE.MathUtils.lerp(joystick.x,aimX,.7);
+ joystick.y=THREE.MathUtils.lerp(joystick.y,aimY,.7);
+ setStick(joystick.x,joystick.y);
 }
 renderer.domElement.style.touchAction='none';
+// Only the 108px thumb pad (plus a small tolerance) activates movement.
+// Tapping the battlefield, building sites and other buttons never creates a joystick.
 renderer.domElement.addEventListener('pointerdown',ev=>{
-  if(!state.playing||state.dead||ev.pointerType==='mouse'||joystick.pointer!==null)return;
-  // Preserve the clear central battlefield and allow a comfortable movement zone
-  // starting a little higher. Touching right-side world/build objects never summons it.
-  const minY=Math.max(115,innerHeight*.27);
-  const maxX=innerWidth*.49;
-  if(ev.clientY<minY||ev.clientX>maxX)return;
-  joystick.pointer=ev.pointerId;joystick.cx=ev.clientX;joystick.cy=ev.clientY;
-  const lift=Math.min(joystick.visualLift,Math.max(0,ev.clientY-68));
-  base.style.left=ev.clientX+'px';base.style.top=(ev.clientY-lift)+'px';
-  base.classList.add('active');
-  renderer.domElement.setPointerCapture(ev.pointerId);
-  // Keep the movement neutral on initial touch; only drag moves David.
-  joystick.x=0;joystick.y=0;setStick(0,0);
+ if(!state.playing||state.dead||state.paused||state.betweenWaves||
+    ev.pointerType==='mouse'||joystick.pointer!==null)return;
+ if(!$('intro').classList.contains('hidden')||!$('pauseOverlay').classList.contains('hidden'))return;
+ const center=joystickCenter();
+ if(Math.hypot(ev.clientX-center.x,ev.clientY-center.y)>center.allowed)return;
+ joystick.pointer=ev.pointerId;
+ joystick.cx=center.x;joystick.cy=center.y;
+ base.classList.add('active');
+ try{renderer.domElement.setPointerCapture(ev.pointerId)}catch{}
+ moveStick(ev);
 },{passive:false});
-renderer.domElement.addEventListener('pointermove',moveStick);
+renderer.domElement.addEventListener('pointermove',moveStick,{passive:false});
 function releaseStick(ev){
-  if(joystick.pointer!==ev.pointerId)return;
-  joystick.pointer=null;joystick.x=0;joystick.y=0;
-  setStick(0,0);base.classList.remove('active');
+ if(joystick.pointer!==ev.pointerId)return;
+ releaseJoystick();
 }
 renderer.domElement.addEventListener('pointerup',releaseStick);
 renderer.domElement.addEventListener('pointercancel',releaseStick);
 window.addEventListener('pointerup',releaseStick);
 window.addEventListener('pointercancel',releaseStick);
+initHandControls();
 
 $('musicToggle').onclick=()=>{audio.unlock();audio.toggleMusic();renderAudioControls()};
 $('sfxToggle').onclick=()=>{audio.unlock();audio.toggleSfx();renderAudioControls()};
@@ -3265,40 +3282,3 @@ $('upgradeHeroQuick').onclick=upgrade;
 $('wallBtn').onclick=()=>build('wall');$('towerBtn').onclick=()=>build('tower');$('trapBtn').onclick=()=>build('trap');$('ballistaBtn').onclick=()=>build('ballista');$('upgradeBtn').onclick=upgrade;$('healBtn').onclick=heal;$('dashBtn').onclick=dash;$('startBtn').onclick=()=>{audio.unlock();reset();saveCheckpoint(true)};$('againBtn').onclick=()=>{audio.unlock();reset();saveCheckpoint(true)};
 camera.position.copy(cameraFollowPosition(hero.group.position));
 camera.lookAt(hero.group.position.x,1.05,hero.group.position.z);showRecord();hasCheckpoint();ui();updateMissions();drawMiniMap();requestAnimationFrame(frame);
-
-if(location.pathname.toLowerCase().includes('developer')){
-const panel=document.createElement('aside');panel.id='devPanel';panel.innerHTML='<div class="devtitle">🛠️ DEVELOPER • GEORGIA 1.08 • ნარიყალა</div><button id="devMoney">🪙 +1000</button><button id="devWood">🌲 +100</button><button id="devGuard">🛡️ მცველი</button><button id="devArcher">🏹 მოკავშირე</button><button id="devHealer">💚 მკურნალი</button><button id="devSiege">🪵 ტარანი</button><button id="devHorde">🔥 დიდი ტალღა</button><button id="devBuild">🎯 ბალისტა</button><button id="devSave">💾 Save</button><button id="devGod">🛡️ უკვდავება OFF</button><button id="devSkip">⏩ შემდეგი ტალღა</button><button id="devFull">❤️ შევსება</button><button id="devWalls">🏰 ყველა ნაგებობა</button>';document.body.append(panel);
-panel.classList.add('dev-closed');
-const toggle=document.createElement('button');
-toggle.id='devToggle';toggle.type='button';
-toggle.textContent='🛠️ DEV';toggle.setAttribute('aria-label','დეველოპერის ბრძანებების გახსნა');
-toggle.setAttribute('aria-expanded','false');document.body.append(toggle);
-toggle.onclick=()=>{
-  const open=panel.classList.toggle('dev-closed')===false;
-  toggle.setAttribute('aria-expanded',String(open));
-  toggle.textContent=open?'✕ DEV':'🛠️ DEV';
-};
-$('devMoney').onclick=()=>{state.coins+=1000;ui();showToast('🪙 +1000')};
-$('devWood').onclick=()=>{state.wood+=100;ui();showToast('🌲 +100')};
-$('devGuard').onclick=()=>{state.coins+=35;state.wood+=3;recruitGuard('sword',true);ui()};
-$('devArcher').onclick=()=>{recruitGuard('archer',true);ui()};
-$('devHealer').onclick=()=>{recruitGuard('healer',true);ui()};
-$('devSiege').onclick=()=>{if(!state.playing)return;state.wave=5;state.waveTotal=1;state.spawned=0;makeEnemy();state.waveLeft=0;ui()};
-$('devHorde').onclick=()=>{if(!state.playing)return;state.coins+=900;
-  for(let i=0;i<20;i++){state.spawned++;makeEnemy()}state.spawned-=20;ui();showToast('⚔️ 20 მტერი!')};
-$('devBuild').onclick=()=>{
- if(!state.playing)return;
- const slot=slots.find(x=>x.kind==='ballista'&&!x.occupied);
- if(!slot)return;
- state.coins+=100;state.wood+=20;hero.group.position.copy(slot.group.position);selectedSlot=slot;build('ballista');ui();
-};
-$('devSave').onclick=()=>saveCheckpoint();
-$('devGod').onclick=()=>{const enabled=state.maxHp<5000;if(enabled){state.maxHp=99999;state.hp=99999;}else{state.maxHp=100+(state.level-1)*18;state.hp=state.maxHp}$('devGod').textContent='🛡️ უკვდავება '+(enabled?'ON':'OFF');ui();};
-$('devSkip').onclick=()=>{if(!state.playing)return;for(const e of state.enemies){scene.remove(e.group);disposeActor(e.group)}state.enemies.length=0;state.waveLeft=0;state.supportQueued=0;state.supportStage=state.supportWaves;state.waveWait=2.5;showToast('⏩ შემდეგი ტალღა')};
-$('devFull').onclick=()=>{state.hp=state.maxHp;state.fortHP=state.maxFortHP;ui();showToast('❤️ შევსებულია')};
-$('devWalls').onclick=()=>{if(!state.playing)return;state.coins+=3000;for(const slot of [...slots]){if(!slot.occupied){hero.group.position.set(slot.group.position.x,0,slot.group.position.z+2);selectedSlot=slot;build(slot.kind)}}hero.group.position.set(2,0,6.5);ui()};
-}
-
-if(location.pathname.toLowerCase().includes('developer'))window.__GEORGIA_DEV={state,hero,slots,audio,getGraphicsInfo:()=>({...renderer.info.render,farLOD:farBody?.count||0}),economyPlots,resourceNodes,buildEconomy,upgradeEconomy,tickEconomy,
-    recruitGuard,updateGuards,makeEnemy,scheduleEnemyReinforcements,paintEconomySign,hitEnemy,shoot,beginWave,bossWarning,saveCheckpoint,restoreSnapshot,decideWaveEvent,battleCry,upgradeCastle,trainArmy,missionProgress,meteorStorm,setCameraZoom,identifyWorldItem,updateWorldConstruction,resetWorldPayment,depositedCoins,depositSpotRing,
-    volley,chooseReward,spawnVillagers,presentWaveRewards,get selected(){return selectedBuild},upgradeStructure};

@@ -1,3 +1,17 @@
+# GEORGIA — Alpha 1.09 Market Candidate (PIRALI Game)
+Player: https://piraligame.github.io/georgia-game/?v=1.09
+GitHub release: https://github.com/piraligame/georgia-game/releases/tag/alpha-1.09
+Source architecture: PROJECT_STRUCTURE.md
+Release notes: RELEASE_NOTES_1.09.md
+
+- Consistent full 3D human enemy models instead of cylindrical stand-ins.
+- One-handed joystick, right/left mode and thumb dash.
+- PIRALI Game studio styling and the published official support email piraligameofficial@gmail.com.
+- 16 separated JavaScript game source files, 4 separated stylesheets and a reproducible Player-only build.
+- Signed Android versionCode 4 / versionName 1.0.9.
+- PIRALI repository untouched; Google Play Console publication is not yet performed.
+
+---
 # 🇬🇪 GEORGIA — ნარიყალას დაცვა
 
 **Alpha 1.07 — BILINGUAL UPDATABLE ANDROID RELEASE**

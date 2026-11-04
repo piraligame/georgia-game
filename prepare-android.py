@@ -1,6 +1,8 @@
 from pathlib import Path
 import shutil
+import subprocess,sys
 root=Path(__file__).resolve().parent
+subprocess.run([sys.executable,str(root/"scripts"/"build_game.py")],check=True)
 out=root/"www"
 out.mkdir(exist_ok=True)
 for filename in ("index.html","style.css","main.js","audio.js","i18n.js","privacy.html","favicon.svg"):

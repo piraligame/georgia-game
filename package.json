@@ -1,13 +1,14 @@
 {
   "name": "georgia-game",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "private": true,
   "type": "module",
-  "description": "GEORGIA Alpha 1.08: optimized renderer and pooled geometry, double-strength enemies and targeted tower destruction, stable signing",
+  "description": "GEORGIA 1.09 Market Candidate: consistent soldier 3D models, optimized scenic batching, stronger siege combat, stable upgrade signing",
   "scripts": {
     "start": "npx serve . -l 8080",
-    "check": "node --check main.js",
-    "buildAndroid": "python prepare-android.py"
+    "check": "python scripts/build_game.py && node --check main.js && node --check dev-main.js",
+    "buildAndroid": "python prepare-android.py",
+    "build:web": "python scripts/build_game.py"
   },
   "dependencies": {
     "@capacitor/android": "^8.6.0",

@@ -1,0 +1,570 @@
+:root{font-family:system-ui,"Segoe UI",sans-serif;color:#fff9e8;background:#0d161b;font-size:14px}*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;width:100%;height:100%;overflow:hidden;touch-action:none}#game{position:fixed;inset:0}canvas{display:block;width:100%;height:100%}#vignette{pointer-events:none;position:fixed;inset:0;background:radial-gradient(ellipse at 50% 45%,transparent 40%,rgba(1,10,14,.54) 100%)}button{color:inherit;cursor:pointer;font:inherit;touch-action:manipulation;border:0}#hud{position:fixed;left:max(16px,env(safe-area-inset-left));top:max(10px,env(safe-area-inset-top));right:max(16px,env(safe-area-inset-right));pointer-events:none;display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.brand{display:flex;flex-direction:column;letter-spacing:.1em;text-shadow:0 3px 12px #000}.brand b{font-family:Georgia,serif;font-size:30px;line-height:1;color:#ffdb92;text-shadow:0 3px 0 #6d401e,0 3px 20px #000}.brand span{font-size:9px;color:#e6dcaf;letter-spacing:.13em;margin-top:6px}.statline{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}.stat{padding:9px 12px;border:1px solid #ffffff39;background:#101e20cc;box-shadow:0 5px 18px #0005;border-radius:15px;min-width:64px;text-align:center;font-weight:700}.stat b{font-size:15px}.healthrow{position:absolute;right:0;top:52px;display:flex;gap:8px;align-items:center;text-shadow:0 1px 5px #000;font-size:11px;font-weight:800}.healthtrack{height:11px;width:145px;border:1px solid #ffffff73;background:#1e3030bb;border-radius:20px;padding:2px}.healthtrack div{background:linear-gradient(90deg,#ed6355,#ffd87d);height:100%;width:100%;border-radius:10px;transition:width .25s}#guide{position:fixed;top:96px;left:50%;transform:translateX(-50%);text-align:center;width:min(80vw,500px);color:#fff8cfbf;font-size:11px;text-shadow:0 2px 10px #000}#toast{position:fixed;top:26%;left:50%;transform:translate(-50%,-10px);background:#10241be8;border:1px solid #f6cf8194;border-radius:12px;padding:12px 20px;pointer-events:none;opacity:0;transition:all .2s;z-index:4;font-weight:700;text-align:center}#toast.show{opacity:1;transform:translate(-50%,0)}#buildpanel{position:fixed;bottom:max(17px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);border:1px solid #d8b96970;background:linear-gradient(130deg,#243b35ef,#172e30f0);border-radius:19px;box-shadow:0 12px 35px #0009;padding:10px;width:min(440px,48vw);backdrop-filter:blur(12px)}.panel-title{font-size:11px;color:#ead49b;text-align:center;font-weight:900;letter-spacing:.05em;padding-bottom:7px}.buildrow{display:flex;gap:6px}.build{flex:1;min-width:0;padding:9px 5px 8px;border:1px solid #cdb97152;border-radius:11px;background:linear-gradient(#496457,#274e47);display:flex;flex-direction:column;gap:4px;align-items:center;box-shadow:inset 0 1px #ffffff22}.build b{white-space:nowrap;font-size:11px}.build small{font-size:11px;color:#ffdf8a}.build:active,#actions button:active{transform:scale(.94);filter:brightness(1.4)}.build:disabled{filter:grayscale(.8);opacity:.6}#joystick{position:fixed;bottom:max(22px,env(safe-area-inset-bottom));left:max(26px,env(safe-area-inset-left));height:124px;width:124px;border:2px solid #ffffffe6;border-radius:50%;background:#0d323b6b;box-shadow:0 0 0 8px #cce5bd19,inset 0 0 28px #131e23aa;touch-action:none}#stick{position:absolute;width:53px;height:53px;left:calc(50% - 26.5px);top:calc(50% - 26.5px);border-radius:50%;background:linear-gradient(145deg,#f6ddb1,#ad8850);border:2px solid #ffeed0;box-shadow:0 5px 15px #0008}#actions{position:fixed;right:max(25px,env(safe-area-inset-right));bottom:max(22px,env(safe-area-inset-bottom));display:flex;align-items:flex-end;gap:10px}#actions button{border-radius:50%;background:linear-gradient(145deg,#ba7645,#8f392a);border:2px solid #e9c47e;box-shadow:0 6px 18px #0009;display:flex;justify-content:center;align-items:center;flex-direction:column;font-size:23px;width:73px;height:73px}#actions button:last-child{background:linear-gradient(145deg,#ad665d,#742f38);width:67px;height:67px}#actions small{font-size:9px;font-weight:800}#actions button:disabled{opacity:.45;filter:grayscale(.7)}#center{position:fixed;inset:0;display:grid;place-items:center;pointer-events:none;background:#07151a55;z-index:5}#center:has(.hidden){background:transparent}.modal{pointer-events:auto;width:min(480px,92vw);border-radius:25px;border:1px solid #ead08e9c;background:linear-gradient(148deg,#233f39f5,#112529f9 60%,#131d20fa);box-shadow:0 18px 80px #000d;padding:25px;text-align:center;backdrop-filter:blur(14px)}.modal.hidden{display:none}.crest{font-size:42px;color:#ffe1a5;text-shadow:0 3px 10px #a05a2a}.eyebrow{text-transform:uppercase;font-size:10px;color:#e7ca84;letter-spacing:.25em;margin:10px}.modal h1{font:700 54px/1 Georgia,serif;letter-spacing:.07em;color:#ffd58d;margin:8px 0;text-shadow:0 4px 0 #9a5c30}.modal h2{margin:8px 0 14px;font-size:21px}.modal p{line-height:1.7;color:#e6e8d3;margin:10px auto 20px;max-width:390px}.modal .primary{background:linear-gradient(#fad992,#c48c40);color:#28241d;text-shadow:none;font-weight:950;border-radius:14px;padding:15px 25px;min-width:210px;box-shadow:0 8px 0 #76522f,0 12px 20px #0005;font-size:16px}.modal small{display:block;margin-top:23px;color:#c8d1bc;line-height:1.7}.hidden{display:none!important}@media(max-width:780px){#hud{left:10px;right:10px}.brand b{font-size:25px}.stat{min-width:46px;padding:7px 8px}.stat b{font-size:12px}.healthrow{top:45px}.healthtrack{width:90px}#guide{font-size:10px;top:94px;width:93vw}#buildpanel{width:min(98vw,355px);bottom:max(115px,calc(env(safe-area-inset-bottom) + 102px));padding:7px}.panel-title{padding-bottom:4px}.build{padding:7px 3px}.build b{font-size:10px}.build small{font-size:10px}#joystick{width:105px;height:105px;left:18px;bottom:max(12px,env(safe-area-inset-bottom))}#actions{right:13px;bottom:max(18px,env(safe-area-inset-bottom));gap:6px}#actions button{width:66px;height:66px;font-size:20px}#actions button:last-child{width:59px;height:59px}#actions small{font-size:8px}.modal h1{font-size:44px}.modal{padding:20px}}@media(max-width:390px){#buildpanel{width:min(96vw,310px)}.brand b{font-size:22px}.statline{gap:3px}.stat{padding:7px 6px}.modal h1{font-size:36px}}
+#devPanel{position:fixed;top:125px;right:12px;z-index:3;background:#1a202ddc;border:1px solid #85baffc0;border-radius:14px;padding:10px;display:flex;gap:6px;max-width:340px;flex-wrap:wrap;backdrop-filter:blur(8px)}#devPanel .devtitle{width:100%;font-size:10px;font-weight:900;letter-spacing:.07em;color:#b6dcff}#devPanel button{padding:8px;border:1px solid #a4c6ea75;border-radius:8px;background:#345076dd;font-size:11px;font-weight:bold}@media(max-width:650px){#devPanel{top:125px;right:6px;left:6px;max-width:none;justify-content:center;padding:6px}#devPanel .devtitle{text-align:center}#devPanel button{font-size:10px;padding:5px}}
+
+/* GEORGIA alpha 0.2 mobile layout and marked construction sites */
+.flag-hero{font-size:54px;filter:drop-shadow(0 4px 8px #0008);line-height:1.15}
+#spotHint{font-size:10px;text-align:center;color:#d5ecba;min-height:16px;margin:-2px auto 5px;max-width:95%}
+#buildProgress{display:inline-block;margin-left:6px;padding:2px 7px;border-radius:8px;background:#e7cf8a24;color:#f7df92;font-variant-numeric:tabular-nums}
+.fortrow{position:absolute;top:74px;right:0;background:#20352ccc;border:1px solid #c7bc785d;border-radius:8px;padding:4px 9px;font-size:10px;color:#eee2b9;text-shadow:0 2px 4px #000}
+.fortrow b{margin-left:4px;color:#fff;font-size:11px}
+#guide{top:121px}
+#buildpanel{bottom:max(32px,calc(env(safe-area-inset-bottom) + 20px))}
+.build:focus-visible{outline:2px solid #fbe093;outline-offset:2px}
+@media(max-width:780px){
+  #buildpanel{bottom:max(176px,calc(env(safe-area-inset-bottom) + 156px));width:min(94vw,365px)}
+  #guide{top:119px;font-size:9px;line-height:1.5}
+  .fortrow{top:70px}
+  #spotHint{font-size:9px}
+  #joystick{bottom:max(16px,env(safe-area-inset-bottom));left:18px}
+  #actions{bottom:max(18px,env(safe-area-inset-bottom));right:13px}
+}
+@media(max-width:410px){
+  #buildpanel{bottom:max(173px,calc(env(safe-area-inset-bottom) + 154px));width:min(96vw,330px)}
+  .panel-title{font-size:10px}
+  .buildrow{gap:5px}
+  .build b{font-size:10px}
+}
+@media(max-height:720px) and (max-width:780px){
+  #buildpanel{bottom:132px;padding:5px}
+  #spotHint{display:none}
+  .modal{max-height:90vh;overflow-y:auto}
+}
+
+
+/* Alpha 0.3: raise upgrades, dynamic Pirali-style touch joystick */
+#joystick{position:fixed;left:0;top:0;bottom:auto;width:112px;height:112px;opacity:0;pointer-events:none;z-index:3;transform:translate(-50%,-50%) scale(.88);transition:opacity .085s,transform .085s;background:#183c3978;border:2px solid #f5e6b9d4;box-shadow:0 0 0 7px #b9e7ba18,inset 0 0 25px #090f0f80}
+#joystick.active{opacity:1;transform:translate(-50%,-50%) scale(1)}
+#stick{width:48px;height:48px;left:calc(50% - 24px);top:calc(50% - 24px);background:linear-gradient(145deg,#f8dfad,#af8847)}
+#buildpanel{bottom:max(244px,calc(env(safe-area-inset-bottom) + 225px));width:min(460px,88vw)}
+.structure-panel{position:fixed;z-index:4;left:50%;transform:translateX(-50%);bottom:max(358px,calc(env(safe-area-inset-bottom) + 340px));width:min(440px,84vw);border:1px solid #e6c47b9c;background:#18352de8;border-radius:14px;padding:8px 12px;box-shadow:0 8px 24px #0009;display:flex;justify-content:space-between;align-items:center;gap:8px;backdrop-filter:blur(10px)}
+.structure-panel span{font-size:11px;color:#ffe7aa;font-weight:800}
+.structure-panel button{background:linear-gradient(#fbd991,#bd853e);color:#242515;border-radius:10px;padding:9px 12px;font-size:11px;font-weight:900;white-space:nowrap}
+.structure-panel button:disabled{filter:grayscale(1);opacity:.54}
+#waveInfo{position:fixed;left:50%;top:145px;transform:translateX(-50%);padding:7px 13px;border:1px solid #f8e3b25f;border-radius:10px;background:#112d2dcc;display:flex;align-items:center;gap:12px;color:#fce5af;font-size:10px;font-weight:800;white-space:nowrap;pointer-events:none;text-shadow:0 1px #0008;box-shadow:0 3px 12px #0004}
+#waveRemain{color:#cce4c4}
+#guide{top:118px}
+@media(max-width:780px){
+  #joystick{width:108px;height:108px;left:0;top:0;bottom:auto}
+  #buildpanel{bottom:max(233px,calc(env(safe-area-inset-bottom) + 215px));width:min(94vw,365px)}
+  .structure-panel{bottom:max(348px,calc(env(safe-area-inset-bottom) + 326px));width:min(94vw,365px)}
+  #waveInfo{top:139px;font-size:9px;max-width:95vw}
+  #guide{top:114px}
+}
+@media(max-width:410px){
+  #buildpanel{bottom:max(235px,calc(env(safe-area-inset-bottom) + 217px));width:min(96vw,330px)}
+  .structure-panel{bottom:max(350px,calc(env(safe-area-inset-bottom) + 328px));width:min(96vw,330px)}
+}
+@media(max-height:720px) and (max-width:780px){
+  #buildpanel{bottom:194px}
+  .structure-panel{bottom:294px}
+}
+
+
+/* Alpha 0.4: audio controls and discreet visibility on compact devices */
+#audioControls{position:fixed;left:max(11px,env(safe-area-inset-left));top:max(57px,calc(env(safe-area-inset-top) + 50px));z-index:4;display:flex;align-items:center;gap:5px}
+#audioControls button{background:#173532d9;color:#f9e5b7;border:1px solid #e6c6898a;min-height:32px;border-radius:10px;padding:5px 9px;font-size:10px;font-weight:800;line-height:1;box-shadow:0 3px 8px #10231c50;white-space:nowrap;backdrop-filter:blur(5px)}
+#audioControls button.audio-muted{opacity:.58;border-color:#9ca6a275}
+#audioControls button:focus-visible{outline:2px solid #ffe5a1;outline-offset:2px}
+@media(max-width:780px){
+ #audioControls{top:max(54px,calc(env(safe-area-inset-top) + 49px));left:10px;gap:4px}
+ #audioControls button{font-size:9px;padding:6px 7px;min-height:29px}
+ #guide{top:118px}
+}
+@media(max-width:360px){
+ #audioControls button{padding:5px 6px;font-size:9px}
+}
+
+
+/* Alpha 0.5: less intrusive UI and restrained visual markers */
+#toast{top:clamp(170px,19.5vh,215px);left:50%;max-width:min(84vw,340px);width:max-content;
+ transform:translate(-50%,-9px);font-size:11px;line-height:1.35;font-weight:800;
+ padding:8px 12px;border:1px solid #f9dd974a;border-radius:11px;
+ background:#123026dd;box-shadow:0 5px 18px #08160a55;backdrop-filter:blur(7px)}
+#toast.show{transform:translate(-50%,0)}
+#vignette{background:radial-gradient(ellipse at 50% 42%,transparent 56%,rgba(5,22,17,.27) 100%)}
+#waveInfo{background:#122b25a8;border:1px solid #ffedaa42;box-shadow:0 3px 10px #07190834}
+#spotHint{font-size:9px;color:#dbe5cbde}
+#structurePanel{background:linear-gradient(110deg,#214036ee,#1a3738f0)}
+#buildpanel{background:linear-gradient(130deg,#29493dee,#173336f1)}
+@media(max-width:780px){
+ #toast{top:clamp(168px,20vh,197px);font-size:11px;padding:7px 11px}
+ #guide{opacity:.65}
+}
+
+
+/* GEORGIA Alpha 0.6 — defense goals, skill button, inter-wave choices */
+#questTracker{position:fixed;left:50%;top:176px;transform:translateX(-50%);border:1px solid #d8c99761;
+ background:#1d3c34d9;color:#e9dfb4;border-radius:10px;min-height:30px;display:flex;align-items:center;
+ gap:8px;padding:6px 12px;white-space:nowrap;z-index:2;font-size:10px;font-weight:800;
+ box-shadow:0 3px 12px #0005;pointer-events:none}
+#villagerCount{color:#ffe49a;font-size:11px}
+#actions{gap:6px}
+#actions #volleyBtn{background:linear-gradient(150deg,#327c68,#1b4d4d);width:66px;height:66px;font-size:23px;border-color:#b8e4bf}
+#volleyBtn:disabled{filter:grayscale(.55);opacity:.52}
+#volleyCd{font-variant-numeric:tabular-nums}
+.reward-overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+ background:#081912be;z-index:10;padding:16px;backdrop-filter:blur(6px)}
+.reward-card{width:min(94vw,560px);border-radius:24px;background:linear-gradient(155deg,#234d42f9,#132b30fc);
+ border:1px solid #f0d08daa;box-shadow:0 18px 60px #000c;padding:25px;text-align:center}
+.reward-kicker{font-size:12px;font-weight:900;color:#a9ecbc;letter-spacing:.08em}
+.reward-card h2{margin:11px 0;font-family:Georgia,serif;font-size:24px;color:#ffdc99}
+.reward-card p{font-size:12px;line-height:1.5;color:#d4e0d5;margin:9px 0 18px}
+.reward-options{display:flex;flex-direction:column;gap:9px}
+.reward-option{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px;
+ border-radius:13px;border:1px solid #e5c78370;background:linear-gradient(95deg,#426752,#265548);
+ text-align:left;box-shadow:0 3px 10px #0004;transition:transform .13s,filter .13s}
+.reward-option:active{transform:scale(.97);filter:brightness(1.12)}
+.reward-option strong{font-size:13px;color:#fff0c6}
+.reward-option span{font-size:11px;color:#d4e2d3}
+.reward-earned{margin-top:15px;color:#e4c987;font-size:11px;font-weight:800}
+#devPanel{top:218px}
+@media(max-width:780px){
+ #questTracker{top:169px;max-width:94vw;font-size:9px;padding:6px 9px}
+ #actions #volleyBtn{width:59px;height:59px;font-size:19px}
+ .reward-card{padding:19px 16px}
+ .reward-card h2{font-size:22px}
+ .reward-option{padding:12px 11px}
+ #devPanel{top:213px}
+}
+@media(max-width:380px){#actions #volleyBtn{width:54px;height:54px}#actions{right:6px;gap:4px}}
+
+
+/* Alpha 0.6 HUD fine tuning: objectives never sit behind toasts */
+#toast{top:218px}
+#devPanel{top:284px}
+@media(max-width:780px){
+ #toast{top:213px}
+ #devPanel{top:279px}
+ #guide{display:none}
+ #intro #bestRecord{font-size:11px}
+}
+#bestRecord{margin:7px auto 14px;font-size:12px;color:#ffdf9f;font-weight:800}
+
+
+/* GEORGIA Alpha 0.7: Kingdom Expansion */
+#resourceBar{position:fixed;top:91px;left:11px;z-index:4;display:flex;gap:6px}
+#resourceBar span{font-size:11px;font-weight:900;color:#ffe9a8;border:1px solid #e9db905c;background:#16392fdb;padding:5px 8px;border-radius:10px}
+#resourceBar b{font-variant-numeric:tabular-nums}
+#pauseBtn{position:fixed;right:12px;top:91px;z-index:4;border:1px solid #d2b9838c;
+ background:#203b35d9;color:#ffebae;border-radius:12px;width:35px;height:31px;font-size:22px;line-height:1}
+#miniMap{position:fixed;top:226px;right:9px;width:99px;height:99px;z-index:2;border-radius:14px;
+ border:1px solid #e8cf955b;box-shadow:0 5px 13px #0a26154b;background:#112927bd;pointer-events:none}
+.event-badge{position:fixed;left:50%;top:209px;transform:translateX(-50%);color:#ffe9af;
+ background:#4d2d2ad9;border:1px solid #e2a9807a;padding:5px 13px;border-radius:9px;z-index:3;font-size:11px;font-weight:900;white-space:nowrap}
+#toast{top:265px;max-width:min(73vw,285px)}
+.buildtabs{display:flex;gap:6px;margin-bottom:6px}
+.buildtabs button{flex:1;padding:7px 8px;font-weight:900;font-size:11px;border-radius:8px;
+ background:#293b32a5;border:1px solid #d9b47544;color:#d6e2ce}
+.buildtabs button.active{background:linear-gradient(#d6ba7b,#b18446);color:#243b2e;border-color:#f5e1aa}
+.village-builds{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+.village-builds .build{min-width:0;display:flex;padding:9px 2px;justify-content:center}
+.village-builds .build b{font-size:9px}
+.village-builds .build small{font-size:9px;white-space:nowrap}
+.recruit-btn{width:100%;border:1px solid #e7cb885c;background:linear-gradient(#426f58,#264e43);
+ border-radius:9px;margin-top:6px;padding:8px 10px;color:#faf1d2;font-size:11px;font-weight:900;display:flex;justify-content:space-between}
+.recruit-btn small{font-size:10px;color:#f5e09c}
+.recruit-btn:disabled{opacity:.46;filter:grayscale(.65)}
+#buildpanel{bottom:max(231px,calc(env(safe-area-inset-bottom) + 211px));width:min(440px,94vw)}
+.structure-panel{bottom:max(370px,calc(env(safe-area-inset-bottom) + 349px))}
+body:has(#villageBuilds:not(.hidden)) .structure-panel{bottom:max(420px,calc(env(safe-area-inset-bottom) + 398px))}
+#buildProgress{font-size:9px}
+.pause-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pause-actions button{padding:13px 10px;border-radius:12px;background:linear-gradient(#426957,#284a45);
+ border:1px solid #f3dca67a;color:#fff2cd;font-weight:900;font-size:13px}
+.pause-actions button:first-child{grid-column:span 2;background:linear-gradient(#dec891,#ac833e);color:#263626}
+.pause-note{display:block;color:#cddcc9;margin-top:16px;font-size:10px;line-height:1.6}
+.modal .primary.secondary{display:block;margin:14px auto 0;background:linear-gradient(#78b9a4,#418f75);box-shadow:0 5px 0 #205c4d;color:#fff}
+@media(max-width:780px){
+ #resourceBar{top:91px;left:10px}
+ #pauseBtn{top:92px;right:12px}
+ #miniMap{top:225px;width:82px;height:82px;right:7px}
+ .event-badge{top:206px;max-width:87vw;font-size:10px}
+ #toast{top:261px}
+ #buildpanel{bottom:max(229px,calc(env(safe-area-inset-bottom) + 210px));width:min(96vw,360px)}
+ .structure-panel{bottom:max(371px,calc(env(safe-area-inset-bottom) + 348px))}
+ body:has(#villageBuilds:not(.hidden)) .structure-panel{bottom:max(415px,calc(env(safe-area-inset-bottom) + 392px))}
+ .buildtabs button{padding:5px 7px}
+ .village-builds .build b{font-size:9px}
+ .village-builds .build small{font-size:8px}
+}
+@media(max-height:720px) and (max-width:780px){
+ #buildpanel{bottom:177px}
+ .structure-panel{bottom:300px}
+ body:has(#villageBuilds:not(.hidden)) .structure-panel{bottom:348px}
+ #miniMap{width:70px;height:70px;top:214px}
+}
+@media(max-width:370px){.village-builds .build b{font-size:8px}#buildpanel{width:98vw}.village-builds{gap:3px}}
+
+
+/* GEORGIA Alpha 0.8 — Siege & Allies */
+#missionPanel{position:fixed;top:199px;left:50%;transform:translateX(-50%);z-index:3;
+ width:min(340px,79vw);color:#f5eac6;border-radius:11px;padding:7px 9px;
+ background:#173b32d9;border:1px solid #dabf8261;box-shadow:0 4px 11px #102a2075;
+ pointer-events:none}
+.mission-top{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:10px}
+.mission-top span{color:#f5d686;font-size:9px}
+.mission-line{font-size:10px;color:#d5ecd7;margin-top:4px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#miniMap{top:287px;width:89px;height:89px}
+#toast{top:255px}
+#eventBadge{top:176px}
+#buildpanel{bottom:max(238px,calc(env(safe-area-inset-bottom) + 214px));}
+#actions{gap:4px}
+#actions #cryBtn{width:63px;height:63px;font-size:22px;border-color:#b7e4c8;
+ background:linear-gradient(140deg,#5f7c65,#386c55)}
+#cryBtn:disabled{opacity:.56;filter:grayscale(.5)}
+.castle-upgrade{margin-top:6px;padding:7px 9px;border-radius:9px;width:100%;
+ background:linear-gradient(95deg,#315344,#32504f);color:#f3e7b8;
+ border:1px solid #dec78b70;display:flex;align-items:center;justify-content:space-between;
+ font-weight:900;font-size:11px}
+.castle-upgrade small{font-size:10px;color:#f6dc99}
+.castle-upgrade:disabled{opacity:.48}
+.army-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.army-grid .build{min-width:0;padding:10px 2px}
+.army-grid .build b{font-size:10px}
+.army-grid .build small{font-size:9px}
+#armyBuilds .recruit-btn{font-size:11px}
+#guardCount{font-variant-numeric:tabular-nums}
+@media(max-width:780px){
+ #missionPanel{top:195px;width:min(324px,77vw);left:48%;font-size:9px}
+ #missionPanel .mission-line{font-size:9px}
+ #miniMap{top:295px;width:75px;height:75px}
+ #toast{top:255px}
+ #eventBadge{top:177px}
+ #buildpanel{bottom:max(224px,calc(env(safe-area-inset-bottom) + 203px))}
+ #actions #cryBtn{height:54px;width:54px;font-size:18px}
+ #actions #volleyBtn{height:54px;width:54px;font-size:18px}
+ #actions #dashBtn,#actions #healBtn{height:54px;width:54px}
+ .castle-upgrade{font-size:10px;padding:6px}
+ .castle-upgrade small{font-size:9px}
+}
+@media(max-width:390px){
+ #resourceBar span{padding:5px 6px;font-size:9px}
+ #actions{gap:3px;right:3px}
+ #actions #cryBtn,#actions #volleyBtn,#actions #dashBtn,#actions #healBtn{height:49px;width:49px}
+ .army-grid .build b{font-size:9px}
+}
+
+/* 0.8 HUD pass: no overlapping pinned quest and wave banners */
+#eventBadge{top:245px;max-width:min(88vw,320px);text-overflow:ellipsis;overflow:hidden}
+#toast{top:275px}
+#miniMap{top:322px}
+#missionPanel{top:196px}
+#actions button small{font-size:9px;line-height:1.12}
+@media(max-width:780px){
+ #eventBadge{top:246px;font-size:9px}
+ #toast{top:274px}
+ #miniMap{top:317px;width:73px;height:73px}
+ #missionPanel{top:196px}
+ #actions button small{font-size:8px;line-height:1.08}
+}
+
+
+/* GEORGIA Alpha 0.9 — wide battlefield with user-adjustable zoom */
+#zoomControls{position:fixed;right:7px;top:405px;z-index:4;display:flex;flex-direction:column;align-items:center;
+ gap:2px;background:#143d36c9;border:1px solid #d8c18a87;border-radius:12px;padding:4px;
+ box-shadow:0 4px 12px #152a2468}
+#zoomControls button{width:30px;height:30px;border-radius:8px;background:#426a56ed;color:#fce7bd;
+ border:1px solid #e6d4a45b;font-size:21px;font-weight:900;line-height:1}
+#zoomLabel{font-size:9px;color:#f6d99f;font-weight:900;line-height:1.1}
+#defenseBuilds{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
+#defenseBuilds .build{min-width:0;padding:7px 2px}
+#defenseBuilds .build b{font-size:9px;white-space:nowrap}
+#defenseBuilds .build small{font-size:9px}
+#actions #meteorBtn{width:56px;height:56px;font-size:21px;border:1px solid #f4be77a2;
+ background:linear-gradient(150deg,#a95533,#5c3940)}
+#meteorBtn:disabled{opacity:.5;filter:grayscale(.55)}
+@media(max-width:780px){
+ #zoomControls{top:405px;right:5px;gap:1px;padding:3px}
+ #zoomControls button{width:25px;height:25px;font-size:19px}
+ #zoomLabel{font-size:8px}
+ #defenseBuilds .build{padding:7px 1px}
+ #defenseBuilds .build b{font-size:8px}
+ #defenseBuilds .build small{font-size:8px}
+ #actions #meteorBtn{width:48px;height:48px;font-size:17px}
+ #actions{gap:2px;right:3px}
+ #actions #cryBtn,#actions #volleyBtn,#actions #dashBtn,#actions #healBtn{width:48px;height:48px}
+}
+@media(max-width:365px){
+ #actions #meteorBtn,#actions #cryBtn,#actions #volleyBtn,#actions #dashBtn,#actions #healBtn{width:43px;height:43px;font-size:17px}
+ #defenseBuilds .build b{font-size:7px}
+}
+
+/* Clear combo feedback when consecutive kills create score streaks. */
+#comboFlash{position:fixed;top:42%;left:50%;transform:translateX(-50%);
+ background:#182b27c9;color:#ffd58e;border:1px solid #ffd58e8a;
+ border-radius:9px;z-index:3;padding:5px 11px;font-size:13px;
+ font-weight:1000;letter-spacing:.04em;text-shadow:0 1px 2px #0008;pointer-events:none}
+@media(max-width:780px){#comboFlash{top:40%;font-size:11px;padding:4px 8px}}
+
+
+/* GEORGIA 1.0 — Narikala immersion: clear 3D viewport and contextual on-world building */
+#buildpanel,#structurePanel{display:none!important}
+#eraBanner{position:fixed;top:155px;left:50%;transform:translateX(-50%);width:min(88vw,320px);
+ padding:6px 10px;z-index:4;pointer-events:none;text-align:center;
+ background:linear-gradient(100deg,#173f38d9,#264538c2);border-radius:12px;border:1px solid #eed4a457;
+ color:#fff0c7;text-shadow:0 1px 2px #1118;display:flex;flex-direction:column;gap:1px}
+#chapterTitle{font-size:12px;font-weight:1000}
+#chapterMission{font-size:10px;font-weight:600;color:#e1eacc}
+#missionPanel{top:209px;left:45%;width:min(76vw,280px);padding:4px 8px}
+#missionPanel .mission-top{font-size:9px}
+#missionPanel .mission-line{font-size:9px}
+#eventBadge{top:264px}
+#toast{top:292px}
+#miniMap{top:320px;width:70px;height:70px;right:6px}
+#zoomControls{top:400px;right:6px;bottom:auto}
+#waveInfo{display:none!important}
+#questTracker{display:none!important}
+#guide{display:none!important}
+#worldBuildInfo{position:fixed;bottom:max(333px,calc(env(safe-area-inset-bottom) + 312px));right:8px;
+ width:170px;border:1px solid #f7d9a690;border-radius:12px;padding:7px 9px;z-index:5;
+ color:#fff3cc;background:#183c31e5;box-shadow:0 7px 16px #0c221a90;pointer-events:none}
+#worldBuildTitle{font-size:11px;font-weight:950;line-height:1.25}
+#worldBuildCost{font-size:10px;color:#d6e4c6;margin-top:4px;font-weight:800}
+.world-build-meter{height:7px;border-radius:8px;margin-top:6px;background:#0f201c;border:1px solid #d5b27d77;overflow:hidden}
+#worldBuildBar{height:100%;background:linear-gradient(90deg,#d18c47,#ffd879);width:0%;transition:width .12s linear}
+.context-actions{position:fixed;right:8px;bottom:max(245px,calc(env(safe-area-inset-bottom) + 224px));width:144px;
+ z-index:5;display:flex;flex-direction:column;gap:4px}
+.context-actions.hidden{display:none!important}
+.context-actions button{padding:7px 6px;border-radius:9px;border:1px solid #f8d5996b;
+ background:linear-gradient(95deg,#365b50,#20483e);color:#fff0c7;box-shadow:0 2px 7px #091f1985;
+ font-size:10px;font-weight:900}
+#actions{right:6px!important;bottom:max(12px,env(safe-area-inset-bottom))!important;top:auto!important;
+ display:flex!important;flex-direction:column!important;align-items:center!important;gap:5px!important}
+#actions button,#actions #cryBtn,#actions #meteorBtn,#actions #volleyBtn,#actions #dashBtn,#actions #healBtn{
+ width:47px!important;height:47px!important;font-size:19px!important;flex:0 0 47px!important;
+ border-radius:50%!important}
+#actions button small{font-size:7px!important;line-height:1!important}
+#resourceBar{top:89px;left:9px}
+#pauseBtn{top:91px}
+#comboFlash{top:43%}
+@media(max-width:780px){
+ #eraBanner{top:142px;padding:5px 8px}
+ #chapterTitle{font-size:11px}#chapterMission{font-size:9px}
+ #missionPanel{top:194px;width:73vw}
+ #eventBadge{top:246px}#toast{top:281px}
+ #miniMap{top:304px;width:64px;height:64px}
+ #zoomControls{top:382px}
+ #worldBuildInfo{bottom:max(300px,calc(env(safe-area-inset-bottom) + 282px));width:155px}
+ .context-actions{bottom:max(231px,calc(env(safe-area-inset-bottom) + 214px));width:128px}
+ #actions button,#actions #cryBtn,#actions #meteorBtn,#actions #volleyBtn,#actions #dashBtn,#actions #healBtn{width:43px!important;height:43px!important;flex-basis:43px!important}
+}
+@media(max-height:750px){
+ #worldBuildInfo{bottom:276px}
+ .context-actions{bottom:219px}
+ #actions button,#actions #cryBtn,#actions #meteorBtn,#actions #volleyBtn,#actions #dashBtn,#actions #healBtn{height:40px!important;width:40px!important;flex-basis:40px!important}
+}
+
+/* Avoid collision among world payments, right-side command dock and zoom. */
+#zoomControls{right:auto!important;left:7px!important;top:368px!important}
+#worldBuildInfo{bottom:max(359px,calc(env(safe-area-inset-bottom) + 342px))}
+.context-actions{bottom:max(263px,calc(env(safe-area-inset-bottom) + 246px))}
+@media(max-width:780px){
+ #zoomControls{top:350px!important}
+ #worldBuildInfo{bottom:max(356px,calc(env(safe-area-inset-bottom) + 338px))}
+ .context-actions{bottom:max(258px,calc(env(safe-area-inset-bottom) + 240px))}
+}
+@media(max-height:750px){
+ #zoomControls{top:324px!important}
+ #worldBuildInfo{bottom:324px}
+ .context-actions{bottom:246px}
+}
+
+/* Uninterrupted siege: no large mission or reward overlays during play. */
+#missionPanel{display:none!important}
+#eventBadge{top:209px}
+#toast{top:243px}
+@media(max-width:780px){#eventBadge{top:196px}#toast{top:230px}}
+
+
+/* Alpha 1.01 • Side-mounted compact HUD / uncluttered center */
+#hud{z-index:4;left:max(6px,env(safe-area-inset-left));right:max(6px,env(safe-area-inset-right));
+ top:max(7px,env(safe-area-inset-top));gap:3px}
+.brand b{font-size:23px}
+.brand span{font-size:8px;letter-spacing:.02em;margin-top:2px;max-width:142px;line-height:1.2}
+.statline{gap:3px;flex-wrap:nowrap;align-self:flex-start}
+.stat{min-width:0;padding:5px 6px;border-radius:9px;font-size:10px}
+.stat b{font-size:10px}
+.healthrow{top:39px;right:0;font-size:9px;gap:3px}
+.healthtrack{height:8px;width:75px;padding:1px}
+.fortrow{top:57px;right:0;padding:3px 5px;font-size:9px;border-radius:7px}
+.fortrow b{font-size:9px}
+#resourceBar{top:max(62px,calc(env(safe-area-inset-top) + 54px))!important;left:5px!important;
+ display:flex;flex-direction:column;align-items:flex-start;gap:3px;z-index:4}
+#resourceBar span{padding:3px 5px;font-size:9px;min-width:46px;border-radius:7px}
+#audioControls{left:5px!important;top:max(150px,calc(env(safe-area-inset-top) + 144px))!important;
+ display:flex;flex-direction:column;gap:3px;align-items:flex-start;z-index:4}
+#audioControls button{font-size:0!important;width:33px;min-width:33px;min-height:31px;
+ padding:3px!important;overflow:hidden;border-radius:8px}
+#audioControls button::first-letter{font-size:17px}
+#pauseBtn{top:max(96px,calc(env(safe-area-inset-top) + 90px))!important;right:5px!important;
+ width:31px;height:29px;border-radius:8px}
+#eraBanner{left:5px!important;top:max(231px,calc(env(safe-area-inset-top) + 225px))!important;
+ transform:none!important;text-align:left;width:104px!important;max-width:28vw;
+ padding:5px 6px;border-radius:8px;gap:3px}
+#chapterTitle{font-size:10px;line-height:1.25}
+#chapterMission{font-size:8px;line-height:1.3}
+#miniMap{top:max(163px,calc(env(safe-area-inset-top) + 157px))!important;right:5px!important;
+ width:68px;height:68px;border-radius:9px}
+#zoomControls{left:5px!important;top:max(345px,calc(env(safe-area-inset-top) + 339px))!important;
+ right:auto!important;z-index:4}
+#zoomControls button{width:28px;height:28px}
+#eventBadge{left:auto!important;right:5px!important;top:max(246px,calc(env(safe-area-inset-top) + 240px))!important;
+ transform:none!important;max-width:118px!important;white-space:normal!important;font-size:9px;
+ text-align:center;padding:5px 6px}
+#toast{left:auto!important;right:5px!important;top:max(278px,calc(env(safe-area-inset-top) + 272px))!important;
+ transform:none!important;width:max-content;max-width:112px!important;font-size:9px;padding:5px 6px;
+ border-radius:8px;text-align:right}
+#toast.show{transform:none!important}
+#comboFlash{left:auto!important;right:5px!important;top:max(290px,calc(env(safe-area-inset-top) + 284px))!important;
+ transform:none!important;max-width:125px!important;padding:5px;font-size:10px;text-align:right}
+#worldBuildInfo{right:5px!important;bottom:max(330px,calc(env(safe-area-inset-bottom) + 308px))!important;
+ width:125px!important;max-width:32vw;padding:6px!important}
+#worldBuildTitle{font-size:9px}
+#worldBuildCost{font-size:8px}
+.context-actions{right:5px!important;bottom:max(259px,calc(env(safe-area-inset-bottom) + 236px))!important;
+ width:119px!important;max-width:31vw;gap:3px}
+.context-actions button{font-size:9px;padding:5px}
+#actions{right:5px!important;gap:3px!important}
+#actions button,#actions #cryBtn,#actions #meteorBtn,#actions #volleyBtn,#actions #dashBtn,#actions #healBtn{
+ width:40px!important;height:40px!important;flex-basis:40px!important;font-size:18px!important}
+#actions button small{font-size:6px!important}
+#joystick{z-index:3;transition:opacity .08s,transform .08s;filter:drop-shadow(0 2px 4px #13281f77)}
+/* Development commands are tucked into a small collapsible left-side drawer. */
+#devToggle{position:fixed;z-index:6;left:5px;bottom:150px;width:42px;height:31px;
+ border:1px solid #9ebfd2aa;border-radius:8px;background:#243c4de9;color:#c9e7ff;
+ font-size:10px;font-weight:900;box-shadow:0 2px 10px #0018}
+#devPanel{z-index:6!important;left:5px!important;right:auto!important;top:auto!important;bottom:188px!important;
+ width:168px!important;max-width:45vw!important;max-height:min(49vh,430px);
+ padding:6px!important;overflow-y:auto;display:grid!important;grid-template-columns:1fr 1fr;gap:4px!important;
+ justify-content:stretch!important;background:#172d37ee}
+#devPanel.dev-closed{display:none!important}
+#devPanel .devtitle{grid-column:1/-1;font-size:9px}
+#devPanel button{font-size:9px!important;padding:5px 3px!important;min-height:29px}
+@media(min-width:781px){
+ #eraBanner{width:155px!important;max-width:155px;top:210px!important}
+ #audioControls{top:155px!important}
+ #miniMap{width:95px;height:95px}
+ #zoomControls{top:360px!important}
+ #eventBadge{top:265px!important;max-width:150px!important}
+ #worldBuildInfo{width:155px!important;max-width:155px}
+ .context-actions{width:145px!important;max-width:145px}
+ #devPanel{width:205px!important;max-width:205px!important}
+}
+@media(max-width:390px){
+ .brand b{font-size:20px}
+ .brand span{font-size:7px;max-width:115px}
+ .stat{padding:4px 4px;font-size:9px}.stat b{font-size:9px}
+ #eraBanner{max-width:27vw;width:97px!important;top:230px!important}
+ #miniMap{width:61px!important;height:61px!important;top:161px!important}
+ #zoomControls{top:340px!important}
+ #worldBuildInfo{width:112px!important}
+ .context-actions{width:109px!important}
+ #actions button,#actions #cryBtn,#actions #meteorBtn,#actions #volleyBtn,#actions #dashBtn,#actions #healBtn{
+ width:39px!important;height:39px!important;flex-basis:39px!important}
+}
+@media(max-height:720px){
+ #eraBanner{top:193px!important}
+ #audioControls{top:140px!important}
+ #miniMap{top:148px!important}
+ #zoomControls{top:290px!important}
+ #eventBadge{top:218px!important}
+ #toast{top:251px!important}
+ #worldBuildInfo{bottom:290px!important}
+ .context-actions{bottom:219px!important}
+ #devToggle{bottom:123px}
+ #devPanel{bottom:160px!important}
+}
+
+
+/* GEORGIA Alpha 1.02 — intentional one-tap building and contextual recruiting */
+#worldBuildInfo,#contextActions{display:none!important}
+.site-dock,.troop-dock{position:fixed;right:6px;width:165px;max-width:40vw;z-index:7;
+ background:linear-gradient(160deg,#173c33f2,#152e2bf0);color:#f7edce;
+ border:1px solid #d4ad6e9d;border-radius:13px;padding:8px;
+ box-shadow:0 7px 17px #071c1688;display:flex;flex-direction:column;gap:6px;
+ pointer-events:auto}
+.site-dock.hidden,.troop-dock.hidden{display:none!important}
+.site-dock{bottom:max(252px,calc(env(safe-area-inset-bottom) + 238px))}
+.troop-dock{bottom:max(252px,calc(env(safe-area-inset-bottom) + 238px))}
+.site-dock.has-troops{bottom:max(313px,calc(env(safe-area-inset-bottom) + 299px))}
+.site-head{display:flex;flex-direction:column;gap:2px}
+.site-head strong{font-size:11px;font-weight:1000;line-height:1.18}
+.site-head small{color:#e9ca94;font-size:9px}
+#siteHint{font-size:10px;line-height:1.22;color:#e0ead3}
+.site-feedback{font-size:9px;color:#f6dc92;min-height:10px;line-height:1.2}
+.dock-primary,.dock-secondary{width:100%;min-height:43px;border-radius:9px;display:flex;
+ justify-content:center;align-items:center;text-align:center;gap:4px;
+ border:1px solid #e9ce9b;box-shadow:0 3px 0 #684620;font-size:12px;font-weight:1000;padding:7px 5px;
+ line-height:1.2;touch-action:manipulation}
+.dock-primary{color:#2c2e26;background:linear-gradient(#ffdf94,#dba150)}
+.dock-secondary{background:linear-gradient(#477363,#275247);color:#fff1cd;border-color:#a7d7bd}
+.dock-primary:disabled,.dock-secondary:disabled,.troop-choices button:disabled{opacity:.5;filter:grayscale(.4);box-shadow:none}
+.site-choices,.troop-choices{display:flex;flex-direction:column;gap:4px;max-height:min(43vh,390px);
+ overflow-y:auto;overscroll-behavior:contain;padding:2px 0}
+.site-choices.hidden,.troop-choices.hidden{display:none!important}
+.site-choices button,.troop-choices button{display:block;min-height:36px;flex-shrink:0;text-align:left;
+ border:1px solid #bbdcba76;border-radius:8px;background:#2d5a4cf3;color:#f5ebd1;font-size:10px;
+ font-weight:850;padding:7px 7px;touch-action:manipulation}
+.site-choices button.selected{background:#8c653c;border-color:#f3d58d;color:white}
+.site-choices button .cost,.troop-choices button .cost{display:block;font-size:9px;color:#f8d58c;margin-top:3px}
+#troopDescription{font-size:10px;color:#ebddb8;line-height:1.3}
+#troopToggle span{font-size:10px;color:#ddf4d4}
+@media(max-width:780px){
+ .site-dock,.troop-dock{width:154px;max-width:40vw;padding:7px;gap:5px}
+ .site-dock{bottom:max(237px,calc(env(safe-area-inset-bottom) + 220px))}
+ .troop-dock{bottom:max(237px,calc(env(safe-area-inset-bottom) + 220px))}
+ .site-dock.has-troops{bottom:max(301px,calc(env(safe-area-inset-bottom) + 284px))}
+ .dock-primary,.dock-secondary{min-height:46px;font-size:12px;padding:7px 4px}
+ .site-choices,.troop-choices{max-height:36vh}
+}
+@media(max-height:720px){
+ .site-dock,.troop-dock{bottom:219px}
+ .site-dock.has-troops{bottom:279px}
+ .site-choices,.troop-choices{max-height:31vh}
+}
+
+/* Alpha 1.03: non-overlapping event, toast and combo information */
+#eventBadge{top:242px!important;right:5px!important;max-width:113px!important;z-index:5}
+#toast{top:284px!important;right:5px!important;max-width:122px!important;z-index:5}
+#comboFlash{position:fixed!important;top:122px!important;bottom:auto!important;right:5px!important;left:auto!important;
+ transform:none!important;max-width:115px!important;font-size:10px!important;padding:4px 6px!important;z-index:5}
+@media(max-height:750px){
+ #eventBadge{top:213px!important}
+ #toast{top:247px!important}
+ #comboFlash{top:112px!important}
+}
+
+/* Alpha 1.03 - primary action still prominent, workers contextual only */
+#siteWorkerBtn,#siteWeaponBtn{min-height:37px;font-size:11px}
+#siteWorkerBtn.hidden,#siteWeaponBtn.hidden{display:none!important}
+.site-dock{max-height:min(48vh,420px);overflow-y:auto;overscroll-behavior:contain}
+#siteBuildBtn{min-height:48px;font-size:13px}
+#siteDock{pointer-events:auto}
+#comboFlash{top:112px!important;right:5px!important;max-width:120px}
+@media(max-width:780px){#siteWorkerBtn,#siteWeaponBtn{font-size:10px;min-height:37px}}
+
+/* Alpha 1.05: compact Facebook link on the game INTRO, not over gameplay */
+.guild-fb-link{display:flex;align-items:center;justify-content:center;gap:9px;
+ margin:8px auto 5px;padding:9px 12px;width:max-content;max-width:90%;
+ text-decoration:none;border:1px solid #85b7ed88;border-radius:10px;
+ color:#e9f4ff;background:#204771bb;font-size:12px;font-weight:900;
+ box-shadow:0 2px 8px #071f3090}
+.guild-fb-link .fb-mark{display:grid;place-items:center;width:21px;height:21px;
+ border-radius:5px;background:#2075df;color:white;font:bold 18px Arial,sans-serif}
+.guild-fb-link:focus-visible{outline:2px solid #ffe9a0;outline-offset:2px}
+@media(max-width:450px){.guild-fb-link{font-size:10px;padding:8px 9px}}
+/* Alpha 1.06: central pause control and PIRALI's real community emblem */
+#pauseBtn{position:fixed!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important;top:91px!important;width:44px!important;height:39px!important;z-index:9!important;border:1px solid #edcc8a!important;box-shadow:0 2px 12px #0008!important}
+.pause-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pause-actions #resumeBtn,.pause-actions #menuReturnBtn{min-height:48px;font-size:12px;font-weight:900}
+.guild-fb-link .guild-emblem{width:29px;height:29px;border-radius:50%;object-fit:cover;border:1px solid #eed5a3;box-shadow:0 2px 8px #0018}
+@media(max-width:390px){.pause-actions #resumeBtn,.pause-actions #menuReturnBtn{font-size:11px}}
+
+
+/* GEORGIA Alpha 1.06: centrally accessible pause and PIRALI community emblem */
+#pauseBtn{position:fixed!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important;top:92px!important;width:43px!important;height:39px!important;z-index:9!important;border:1px solid #f8d99c!important;box-shadow:0 2px 12px #001a!important}
+.pause-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pause-actions #resumeBtn,.pause-actions #menuReturnBtn{min-height:50px;padding:12px 6px;font-size:12px;font-weight:900}
+.guild-fb-link .guild-emblem{width:28px;height:28px;border-radius:50%;object-fit:cover;border:1px solid #f1d4a1;box-shadow:0 2px 8px #0019}
+@media(max-width:390px){#pauseBtn{top:89px!important}.pause-actions #resumeBtn,.pause-actions #menuReturnBtn{font-size:11px}}
+

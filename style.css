@@ -585,3 +585,67 @@ body:has(#pauseOverlay:not(.hidden)) #pauseBtn{display:none!important}
 @media(max-width:450px){.language-choice{padding:7px 9px;font-size:11px}}
 
 .privacy-link{display:block;margin:9px auto 4px;text-align:center;text-decoration:underline;color:#b2dce9;font-size:11px;line-height:1.4}.privacy-link:hover{color:#fff2bb}
+
+/* Alpha 1.09 one-thumb controls: anchored thumbpad, no half-screen touch capture */
+#joystick{position:fixed!important;left:max(13px,env(safe-area-inset-left))!important;
+  right:auto!important;bottom:max(16px,env(safe-area-inset-bottom))!important;
+  top:auto!important;transform:none!important;opacity:.72!important;
+  width:110px!important;height:110px!important;pointer-events:none!important;
+  transition:opacity .12s, box-shadow .12s;z-index:4!important}
+#joystick.active{opacity:1!important;transform:none!important;
+  box-shadow:0 0 0 6px #c6e3ba32,inset 0 0 30px #071817af}
+body.joystick-right #joystick{left:auto!important;right:max(13px,env(safe-area-inset-right))!important}
+#stick{width:46px!important;height:46px!important;left:calc(50% - 23px)!important;
+  top:calc(50% - 23px)!important}
+#thumbDashBtn{position:fixed;left:max(37px,calc(env(safe-area-inset-left) + 24px));right:auto;
+  bottom:max(144px,calc(env(safe-area-inset-bottom) + 127px));
+  width:56px;height:56px;border:1px solid #fae3b4;border-radius:50%;
+  background:#8c533fe8;color:#ffe9b8;font-size:27px;font-weight:900;
+  box-shadow:0 6px 16px #0007;z-index:4;touch-action:manipulation}
+body.joystick-right #thumbDashBtn{
+ left:auto;right:max(37px,calc(env(safe-area-inset-right) + 24px))}
+body.joystick-right #actions{right:auto!important;left:max(6px,env(safe-area-inset-left))!important}
+.control-hand-toggle{display:block;margin:10px auto;padding:9px 13px;min-height:36px;
+  border:1px solid #d6c390a0;border-radius:12px;background:#264741e9;color:#fbe8ad;
+  font-size:12px;font-weight:800;cursor:pointer}
+#pauseOverlay .control-hand-toggle{margin:10px auto 0}
+body:has(#intro:not(.hidden)) #joystick,
+body:has(#intro:not(.hidden)) #thumbDashBtn,
+body:has(#over:not(.hidden)) #joystick,
+body:has(#over:not(.hidden)) #thumbDashBtn,
+body:has(#pauseOverlay:not(.hidden)) #joystick,
+body:has(#pauseOverlay:not(.hidden)) #thumbDashBtn,
+body:has(#rewardOverlay:not(.hidden)) #joystick,
+body:has(#rewardOverlay:not(.hidden)) #thumbDashBtn{opacity:0!important;visibility:hidden!important}
+@media(max-width:390px){#joystick{width:100px!important;height:100px!important}
+ #thumbDashBtn{bottom:max(130px,calc(env(safe-area-inset-bottom) + 113px));width:49px;height:49px}}
+
+
+/* GEORGIA — PIRALI Game studio visual language: warm gold, charcoal, leather.
+   An original theme for GEORGIA; PIRALI assets and project remain untouched. */
+:root{
+ --pirali-gold:#ddaa52;
+ --pirali-gold-light:#ffe3a2;
+ --pirali-leather:#553727;
+ --pirali-dark:#171711;
+}
+body{background:#171a18}
+.modal,.reward-card{border-color:#dba855b0!important;
+ background:linear-gradient(155deg,#3b3026f7,#232826fa 52%,#171d1cfb)!important;
+ box-shadow:0 18px 65px #0c100de8!important}
+.modal h1,.modal h2,.reward-card h2,.brand b{color:var(--pirali-gold-light)!important;
+ text-shadow:0 3px 15px #0b100cd0,0 2px 0 #714c2b}
+.modal .primary,.dock-primary,.pause-actions button:not(.control-hand-toggle){
+ background:linear-gradient(175deg,#f4d690,#c38a42)!important;
+ color:#2a251e!important;border:1px solid #f6dc96aa!important;
+ box-shadow:0 4px 0 #674522,0 7px 18px #0008!important}
+.language-choice.active,.control-hand-toggle{border-color:#e5bc79!important}
+#hud .stat{border-color:#e2ba7e55;background:#1c2420e0}
+#buildpanel,#siteDock,#troopDock{border-color:#cda36a72!important;
+ background:linear-gradient(145deg,#323d32eb,#212827f5)!important}
+.studio-credit{display:grid;gap:3px;margin:11px auto 2px;
+ font-size:11px;color:#ebc683;text-align:center;line-height:1.4}
+.studio-credit a{color:#e9c6a0;text-decoration:underline;overflow-wrap:anywhere}
+@media(max-width:430px){.studio-credit{font-size:10px;margin:8px auto 2px}}
+
+.modal#intro{max-height:calc(100dvh - 18px);overflow-y:auto;scrollbar-width:thin}
