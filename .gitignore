@@ -34,3 +34,7 @@ alpha10-*.png
 alpha10-*.cjs
 patch-alpha10-*.py
 fix-qa10.py
+
+alpha101-*.cjs
+alpha101-*.png
+patch-alpha101-*.py

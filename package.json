@@ -1,9 +1,9 @@
 {
   "name": "georgia-game",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "type": "module",
-  "description": "GEORGIA — Narikala: walk-to-build coin deposits, 4-tier walls, David of Shavsheti, Mongol and Persian siege chapters, continuous action",
+  "description": "GEORGIA Narikala Alpha 1.01: clean side HUD, compact developer drawer and raised touch joystick",
   "scripts": {
     "start": "npx serve . -l 8080",
     "check": "node --check main.js"

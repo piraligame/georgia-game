@@ -837,7 +837,7 @@ const state={playing:false,dead:false,coins:185,wood:75,meteorCd:0,effects:[],sc
  villagers:[],economy:[],guards:[],enemyShots:[],hazards:[],villagerGoal:1,rescued:0,lost:0,totalRescued:0,settlementTier:0,villageIncomeTimer:15,
  dashCd:0,dashTime:0,volleyCd:0,lastTime:0,waveWait:0,betweenWaves:false,paused:false,waveEvent:'normal',miniTimer:0,uiCd:0};
 let facing=new THREE.Vector3(0,0,-1),movement=new THREE.Vector2(0,0),lastToast=0;
-const keys={};const joystick={x:0,y:0,pointer:null};
+const keys={};const joystick={x:0,y:0,pointer:null,visualLift:30};
 document.addEventListener('visibilitychange',()=>{
   if(document.hidden&&state.playing&&!state.paused&&!state.betweenWaves){saveCheckpoint(true);openPause()}
 });
@@ -1266,7 +1266,7 @@ const worldLabelCanvas=document.createElement('canvas');worldLabelCanvas.width=5
 const worldLabelTex=new THREE.CanvasTexture(worldLabelCanvas);worldLabelTex.colorSpace=THREE.SRGBColorSpace;
 worldLabelTex.minFilter=THREE.LinearFilter;
 const worldBillboard=new THREE.Sprite(new THREE.SpriteMaterial({map:worldLabelTex,transparent:true,depthTest:false,depthWrite:false}));
-worldBillboard.scale.set(4.4,1.1,1);worldBillboard.visible=false;scene.add(worldBillboard);
+worldBillboard.scale.set(3.1,.76,1);worldBillboard.visible=false;scene.add(worldBillboard);
 function setWorldBillboard(label,position,level=2){
  if(worldBillboardText!==label){
    const ctx=worldLabelCanvas.getContext('2d');
@@ -2451,12 +2451,18 @@ function moveStick(ev){
 renderer.domElement.style.touchAction='none';
 renderer.domElement.addEventListener('pointerdown',ev=>{
   if(!state.playing||state.dead||ev.pointerType==='mouse'||joystick.pointer!==null)return;
-  const panel=$('buildpanel').getBoundingClientRect();
-  if(ev.clientY<panel.bottom+9)return; // only below upgrade/build panel
+  // Preserve the clear central battlefield and allow a comfortable movement zone
+  // starting a little higher. Touching right-side world/build objects never summons it.
+  const minY=Math.max(115,innerHeight*.27);
+  const maxX=innerWidth*.70;
+  if(ev.clientY<minY||ev.clientX>maxX)return;
   joystick.pointer=ev.pointerId;joystick.cx=ev.clientX;joystick.cy=ev.clientY;
-  base.style.left=ev.clientX+'px';base.style.top=ev.clientY+'px';
+  const lift=Math.min(joystick.visualLift,Math.max(0,ev.clientY-68));
+  base.style.left=ev.clientX+'px';base.style.top=(ev.clientY-lift)+'px';
   base.classList.add('active');
-  renderer.domElement.setPointerCapture(ev.pointerId);moveStick(ev);
+  renderer.domElement.setPointerCapture(ev.pointerId);
+  // Keep the movement neutral on initial touch; only drag moves David.
+  joystick.x=0;joystick.y=0;setStick(0,0);
 },{passive:false});
 renderer.domElement.addEventListener('pointermove',moveStick);
 function releaseStick(ev){
@@ -2507,7 +2513,17 @@ $('wallBtn').onclick=()=>build('wall');$('towerBtn').onclick=()=>build('tower');
 camera.position.set(21,22,22);camera.lookAt(0,0,0);showRecord();hasCheckpoint();ui();updateMissions();drawMiniMap();requestAnimationFrame(frame);
 
 if(location.pathname.toLowerCase().includes('developer')){
-const panel=document.createElement('aside');panel.id='devPanel';panel.innerHTML='<div class="devtitle">🛠️ DEVELOPER • GEORGIA 1.0 • ნარიყალა</div><button id="devMoney">🪙 +1000</button><button id="devWood">🌲 +100</button><button id="devGuard">🛡️ მცველი</button><button id="devArcher">🏹 მოკავშირე</button><button id="devHealer">💚 მკურნალი</button><button id="devSiege">🪵 ტარანი</button><button id="devHorde">🔥 დიდი ტალღა</button><button id="devBuild">🎯 ბალისტა</button><button id="devSave">💾 Save</button><button id="devGod">🛡️ უკვდავება OFF</button><button id="devSkip">⏩ შემდეგი ტალღა</button><button id="devFull">❤️ შევსება</button><button id="devWalls">🏰 ყველა ნაგებობა</button>';document.body.append(panel);
+const panel=document.createElement('aside');panel.id='devPanel';panel.innerHTML='<div class="devtitle">🛠️ DEVELOPER • GEORGIA 1.01 • ნარიყალა</div><button id="devMoney">🪙 +1000</button><button id="devWood">🌲 +100</button><button id="devGuard">🛡️ მცველი</button><button id="devArcher">🏹 მოკავშირე</button><button id="devHealer">💚 მკურნალი</button><button id="devSiege">🪵 ტარანი</button><button id="devHorde">🔥 დიდი ტალღა</button><button id="devBuild">🎯 ბალისტა</button><button id="devSave">💾 Save</button><button id="devGod">🛡️ უკვდავება OFF</button><button id="devSkip">⏩ შემდეგი ტალღა</button><button id="devFull">❤️ შევსება</button><button id="devWalls">🏰 ყველა ნაგებობა</button>';document.body.append(panel);
+panel.classList.add('dev-closed');
+const toggle=document.createElement('button');
+toggle.id='devToggle';toggle.type='button';
+toggle.textContent='🛠️ DEV';toggle.setAttribute('aria-label','დეველოპერის ბრძანებების გახსნა');
+toggle.setAttribute('aria-expanded','false');document.body.append(toggle);
+toggle.onclick=()=>{
+  const open=panel.classList.toggle('dev-closed')===false;
+  toggle.setAttribute('aria-expanded',String(open));
+  toggle.textContent=open?'✕ DEV':'🛠️ DEV';
+};
 $('devMoney').onclick=()=>{state.coins+=1000;ui();showToast('🪙 +1000')};
 $('devWood').onclick=()=>{state.wood+=100;ui();showToast('🌲 +100')};
 $('devGuard').onclick=()=>{state.coins+=35;state.wood+=3;recruitGuard('sword',true);ui()};
