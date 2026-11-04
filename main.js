@@ -18,9 +18,30 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x8dc8bf);
 scene.fog = new THREE.FogExp2(0x9ac9b7, .009);
 const renderer = new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance'});
-renderer.setPixelRatio(Math.min(devicePixelRatio || 1, innerWidth<760?1.35:1.6));
+// Scalable resolution avoids sustained overheating on phones with large late-game armies.
+const mobileRenderer=innerWidth<760;
+let gamePixelRatio=Math.min(devicePixelRatio||1,mobileRenderer?1.12:1.5);
+renderer.setPixelRatio(gamePixelRatio);
+let fpsTime=0,fpsFrames=0,fpsGoodStreak=0;
+function tuneGraphics(dt){
+ if(!mobileRenderer||!state.playing||state.paused)return;
+ fpsTime+=Math.min(dt,.1);fpsFrames++;
+ if(fpsTime<2.4)return;
+ const fps=fpsFrames/fpsTime;fpsTime=0;fpsFrames=0;
+ if(fps<43&&gamePixelRatio>.76){
+   gamePixelRatio=Math.max(.76,gamePixelRatio-.12);
+   renderer.setPixelRatio(gamePixelRatio);
+   fpsGoodStreak=0;
+ }else if(fps>57&&gamePixelRatio<1.12){
+   if(++fpsGoodStreak>=4){
+     gamePixelRatio=Math.min(1.12,gamePixelRatio+.08);
+     renderer.setPixelRatio(gamePixelRatio);
+     fpsGoodStreak=0;
+   }
+ }else fpsGoodStreak=0;
+}
 renderer.setSize(innerWidth, innerHeight);
-renderer.shadowMap.enabled = true;
+renderer.shadowMap.enabled = !mobileRenderer;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 $('game').appendChild(renderer.domElement);
@@ -51,17 +72,38 @@ try{const z=Number(localStorage.getItem('georgia-zoom-v1'));if(z>=.53&&z<=1.20)c
 const sun = new THREE.DirectionalLight(0xffedc6,2.1);
 sun.position.set(-17,35,14);
 sun.castShadow=true;
-sun.shadow.mapSize.set(innerWidth<760?768:1024,innerWidth<760?768:1024);
+sun.shadow.mapSize.set(innerWidth<760?512:1024,innerWidth<760?512:1024);
 sun.shadow.camera.left=-36;sun.shadow.camera.right=36;sun.shadow.camera.top=36;sun.shadow.camera.bottom=-36;
 const hemiLight=new THREE.HemisphereLight(0xe8f6e9,0x4c5b36,2);
 scene.add(sun,hemiLight);
-const mat=(color,roughness=1)=>new THREE.MeshStandardMaterial({color,roughness});
+// Reuse immutable materials and primitive geometry across armies/buildings.
+const cachedMaterials=new Map(),cachedMaterialSet=new Set();
+const mat=(color,roughness=1)=>{
+ const key=color+':'+roughness;
+ let material=cachedMaterials.get(key);
+ if(!material){
+   material=new THREE.MeshStandardMaterial({color,roughness});
+   cachedMaterials.set(key,material);cachedMaterialSet.add(material);
+ }
+ return material;
+};
+const primitiveGeometryCache=new Map(),cachedGeometries=new Set();
+function primitiveGeometry(kind,args,create){
+ // Random-sized scenery stays uncached; fixed-size army/building primitives are shared.
+ if(!args.every(n=>Math.abs(n-Math.round(n*1000)/1000)<1e-8))return create();
+ const key=kind+':'+args.join(',');
+ let geo=primitiveGeometryCache.get(key);
+ if(!geo){
+   geo=create();primitiveGeometryCache.set(key,geo);cachedGeometries.add(geo);
+ }
+ return geo;
+}
 const materials={grass:mat(0x7baf70),dirt:mat(0xbaa478),rock:mat(0x807f75),wall:mat(0xc1bba9),dark:mat(0x47515a),wood:mat(0x8d5f39),roof:mat(0xb3563a),gold:mat(0xffd25e,.35),red:mat(0xb54c46),enemy:mat(0xaa4945),yellow:mat(0xffd979),green:mat(0x247963),skin:mat(0xf2bf91),shadow:mat(0x253a2d)};
 function mesh(parent,geo,material,x=0,y=0,z=0){const m=new THREE.Mesh(geo,material);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
-function cube(parent,w,h,d,material,x=0,y=0,z=0){return mesh(parent,new THREE.BoxGeometry(w,h,d),material,x,y,z)}
-function sphere(parent,r,material,x=0,y=0,z=0){return mesh(parent,new THREE.SphereGeometry(r,10,8),material,x,y,z)}
-function cone(parent,r,h,material,x=0,y=0,z=0){return mesh(parent,new THREE.ConeGeometry(r,h,7),material,x,y,z)}
-function cyl(parent,top,bottom,h,material,x=0,y=0,z=0){return mesh(parent,new THREE.CylinderGeometry(top,bottom,h,8),material,x,y,z)}
+function cube(parent,w,h,d,material,x=0,y=0,z=0){return mesh(parent,primitiveGeometry('box',[w,h,d],()=>new THREE.BoxGeometry(w,h,d)),material,x,y,z)}
+function sphere(parent,r,material,x=0,y=0,z=0){return mesh(parent,primitiveGeometry('sphere',[r],()=>new THREE.SphereGeometry(r,10,8)),material,x,y,z)}
+function cone(parent,r,h,material,x=0,y=0,z=0){return mesh(parent,primitiveGeometry('cone',[r,h],()=>new THREE.ConeGeometry(r,h,7)),material,x,y,z)}
+function cyl(parent,top,bottom,h,material,x=0,y=0,z=0){return mesh(parent,primitiveGeometry('cylinder',[top,bottom,h],()=>new THREE.CylinderGeometry(top,bottom,h,8)),material,x,y,z)}
 function rand(min,max){return min+Math.random()*(max-min)}
 function dist2(a,b){return Math.hypot(a.x-b.x,a.z-b.z)}
 const floor=mesh(scene,new THREE.PlaneGeometry(420,420),materials.grass);
@@ -481,6 +523,84 @@ function wallGeometry(group,level){
  root.userData.wallLevel=level;
  return root;
 }
+// Batch static opaque meshes of each completed building by material.
+// Late-game forts contain thousands of tiny model parts; batching them cuts
+// draw calls while leaving animated tower archers, hitboxes and labels intact.
+function batchBuildingMeshes(root,excluded=[]){
+ if(!mobileRenderer||!root)return;
+ root.updateWorldMatrix(true,true);
+ const invert=new THREE.Matrix4().copy(root.matrixWorld).invert();
+ const groups=new Map();
+ root.traverse(node=>{
+   if(!node.isMesh||!node.visible||!node.material?.isMeshStandardMaterial||
+       node.material.transparent||!node.geometry)return;
+   let ancestor=node;
+   while(ancestor&&ancestor!==root){
+     if(excluded.includes(ancestor))return;
+     ancestor=ancestor.parent;
+   }
+   if(!ancestor)return;
+   const g=node.geometry;
+   if(!g.getAttribute('position')||!g.getAttribute('normal')||!g.getAttribute('uv'))return;
+   if(!groups.has(node.material))groups.set(node.material,[]);
+   groups.get(node.material).push(node);
+ });
+ const v=new THREE.Vector3(),n=new THREE.Vector3(),matrix=new THREE.Matrix4(),norm=new THREE.Matrix3();
+ for(const [material,nodes] of groups){
+   if(nodes.length<2)continue;
+   let verts=0,faces=0;
+   for(const node of nodes){
+     verts+=node.geometry.getAttribute('position').count;
+     faces+=(node.geometry.index?.count||node.geometry.getAttribute('position').count);
+   }
+   // Preserve memory limits on older GPUs and WebGL index formats.
+   if(verts>60000||faces>190000)continue;
+   const positions=new Float32Array(verts*3),normals=new Float32Array(verts*3),
+     uvs=new Float32Array(verts*2),indices=new Uint16Array(faces);
+   let off=0,io=0;
+   for(const node of nodes){
+     const g=node.geometry,pa=g.getAttribute('position'),na=g.getAttribute('normal'),uv=g.getAttribute('uv');
+     matrix.multiplyMatrices(invert,node.matrixWorld);
+     norm.getNormalMatrix(matrix);
+     for(let i=0;i<pa.count;i++){
+       v.fromBufferAttribute(pa,i).applyMatrix4(matrix);
+       positions.set([v.x,v.y,v.z],(off+i)*3);
+       n.fromBufferAttribute(na,i).applyMatrix3(norm).normalize();
+       normals.set([n.x,n.y,n.z],(off+i)*3);
+       uvs[(off+i)*2]=uv.getX(i);uvs[(off+i)*2+1]=uv.getY(i);
+     }
+     const index=g.index;
+     const length=index?.count||pa.count;
+     for(let i=0;i<length;i++)indices[io++]=off+(index?index.getX(i):i);
+     off+=pa.count;
+   }
+   const merged=new THREE.BufferGeometry();
+   merged.setAttribute('position',new THREE.BufferAttribute(positions,3));
+   merged.setAttribute('normal',new THREE.BufferAttribute(normals,3));
+   merged.setAttribute('uv',new THREE.BufferAttribute(uvs,2));
+   merged.setIndex(new THREE.BufferAttribute(indices,1));
+   merged.computeBoundingSphere();
+   const model=new THREE.Mesh(merged,material);
+   model.castShadow=false;model.receiveShadow=false;
+   root.add(model);
+   for(const node of nodes){
+     node.parent?.remove(node);
+     if(!cachedGeometries.has(node.geometry))node.geometry.dispose();
+   }
+ }
+}
+function optimizeBuildingVisual(b){
+ if(!mobileRenderer||!b)return;
+ const defense=Boolean(b.slot);
+ const root=defense?(b.kind==='wall'?b.group.userData.wallVisual:
+   b.kind==='tower'?b.group.userData.towerVisual:b.group):
+   b.decor||b.group;
+ const archer=b.group.userData.archer?.parent;
+ const excluded=[b.hit,b.tag,b.label,b.group.userData.ballistaHead,
+   b.group.userData.trapPulse,archer].filter(Boolean);
+ if(root===b.group&&b.decor)excluded.push(b.decor);
+ batchBuildingMeshes(root,excluded);
+}
 function rebuildWall(b){
  if(!b||b.kind!=='wall')return;
  if(b.group.userData.wallVisual){
@@ -592,7 +712,7 @@ function upgradeStructure(prepaid=false){
  if(!prepaid&&state.coins<cost){showToast('🪙 გასაძლიერებლად საჭიროა '+cost+' მონეტა');return}
  if(!prepaid)state.coins-=cost;b.level++;
  b.maxHp+=b.kind==='wall'?155:b.kind==='trap'?55:130;b.hp=Math.min(b.maxHp,b.hp+(b.kind==='wall'?185:140));
- if(b.kind==='wall')rebuildWall(b);else if(b.kind==='tower')rebuildTower(b);else decorateBuilding(b);makeUpgradeTag(b);
+ if(b.kind==='wall')rebuildWall(b);else if(b.kind==='tower')rebuildTower(b);else decorateBuilding(b);makeUpgradeTag(b);optimizeBuildingVisual(b);
  for(let i=0;i<12;i++)particle(b.group.position.x,rand(.6,2),b.group.position.z,0xffdc80);
  audio.play('upgrade');showToast(defenseNames[b.kind]+' — დონე '+b.level+'!');
  ui();
@@ -929,7 +1049,7 @@ function buildEconomy(kind,forced=null,restoring=false,prepaid=false){
  plot.occupied=true;plot.building=b;plot.group.visible=false;
  state.economy.push(b);
  selectedEconomy=b;selectedBuild=null;selectedEconomyPlot=null;
- makeEconomyLabel(b);
+ makeEconomyLabel(b);optimizeBuildingVisual(b);
  if(!restoring){if(!prepaid)state.coins-=cost.coins;state.wood-=cost.wood;state.totalConstruction++;audio.play('build');showToast(cost.name+' აშენებულია!')}
  ui();return true;
 }
@@ -946,7 +1066,7 @@ function upgradeEconomy(prepaid=false){
  parent.add(newDecor);b.decor=newDecor;
  // Hide first-build decorative meshes to avoid overlapping roof shapes.
  for(const child of oldModel){if(child!==b.hit&&child!==b.label&&child!==b.decor){parent.remove(child);disposeActor(child)}}
- makeEconomyLabel(b);audio.play('upgrade');showToast(economyDefinitions[b.kind].name+' LV '+b.level);
+ makeEconomyLabel(b);optimizeBuildingVisual(b);audio.play('upgrade');showToast(economyDefinitions[b.kind].name+' LV '+b.level);
  ui();
 }
 function tickEconomy(dt,now){
@@ -1029,6 +1149,48 @@ const state={playing:false,dead:false,coins:185,wood:75,meteorCd:0,effects:[],sc
  spawnCd:0,waveLeft:0,spawned:0,waveTotal:0,siegeMode:false,supportWaves:0,supportStage:0,supportQueued:0,supportSpawned:0,supportCd:0,builds:[],enemies:[],shots:[],pickups:[],particles:[],
  villagers:[],economy:[],guards:[],enemyShots:[],hazards:[],villagerGoal:1,rescued:0,lost:0,totalRescued:0,settlementTier:0,villageIncomeTimer:15,
  dashCd:0,dashTime:0,volleyCd:0,lastTime:0,waveWait:0,betweenWaves:false,paused:false,waveEvent:'normal',miniTimer:0,uiCd:0};
+// Mobile-only far-distance soldier LOD: instanced silhouettes replace hundreds
+// of skinned accessories per enemy. Nearby combat always uses full 3D models.
+const farBody=mobileRenderer?new THREE.InstancedMesh(
+  new THREE.CylinderGeometry(.43,.55,1.54,6),
+  new THREE.MeshStandardMaterial({color:0xffffff,roughness:.95}),64):null;
+const farHead=mobileRenderer?new THREE.InstancedMesh(
+  new THREE.SphereGeometry(.31,7,5),materials.skin,64):null;
+if(farBody){
+ for(const part of [farBody,farHead]){
+   part.count=0;part.castShadow=false;part.receiveShadow=false;
+   part.frustumCulled=false;part.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+   scene.add(part);
+ }
+}
+const farMatrix=new THREE.Matrix4(),farPosition=new THREE.Vector3(),
+  farScale=new THREE.Vector3(),farQuaternion=new THREE.Quaternion(),
+  farColor=new THREE.Color(),farUpAxis=new THREE.Vector3(0,1,0);
+let farVisibleCount=0;
+function addFarEnemy(enemy){
+ if(!farBody||farVisibleCount>=64)return;
+ const index=farVisibleCount++,ePos=enemy.group.position;
+ const scale=enemy.group.scale.x,cosmeticScale=Math.min(1.38,scale);
+ farQuaternion.setFromAxisAngle(farUpAxis,enemy.group.rotation.y);
+ farPosition.set(ePos.x,.90*cosmeticScale,ePos.z);
+ farScale.set(cosmeticScale,cosmeticScale,cosmeticScale);
+ farMatrix.compose(farPosition,farQuaternion,farScale);
+ farBody.setMatrixAt(index,farMatrix);
+ farColor.setHex(enemy.lodColor||0x9e6653);
+ farBody.setColorAt(index,farColor);
+ farPosition.y=1.91*cosmeticScale;
+ farMatrix.compose(farPosition,farQuaternion,farScale);
+ farHead.setMatrixAt(index,farMatrix);
+}
+function finishFarEnemies(){
+ if(!farBody)return;
+ farBody.count=farVisibleCount;farHead.count=farVisibleCount;
+ if(farVisibleCount){
+   farBody.instanceMatrix.needsUpdate=true;
+   farHead.instanceMatrix.needsUpdate=true;
+   farBody.instanceColor.needsUpdate=true;
+ }
+}
 let facing=new THREE.Vector3(0,0,-1),movement=new THREE.Vector2(0,0),lastToast=0;
 const keys={};const joystick={x:0,y:0,pointer:null,visualLift:30};
 function pauseForInterruption(){
@@ -1199,6 +1361,48 @@ const eventLabels={
  siege:'🔥 დიდი ალყა • მტრის ახალი რაზმები!',
  captain:'👑 კაპიტანი და ელიტური ჯარი!'
 };
+// Defensive structures are real combat targets, including tower and ballista.
+function damageStructure(building,damage){
+ if(!building||!(state.builds.includes(building)||state.economy.includes(building)))return;
+ building.hp=Math.max(0,building.hp-damage);
+ if(building.hp>0){
+   if(Math.random()<.4)particle(building.group.position.x,1.3,building.group.position.z,0xf4a46c);
+   return;
+ }
+ scene.remove(building.group);disposeActor(building.group);
+ if(state.builds.includes(building)){
+   state.builds.splice(state.builds.indexOf(building),1);
+   building.slot.occupied=false;building.slot.group.visible=true;
+   if(selectedSlot===building.slot)selectedSlot=null;
+   if(selectedBuild===building)selectedBuild=null;
+   showToast(building.kind==='tower'?'🏹 მტერმა კოშკი დაანგრია!':
+     building.kind==='ballista'?'🎯 ბალისტა განადგურდა!':'🧱 გალავანი დაინგრა • აღადგინე');
+ }else{
+   state.economy.splice(state.economy.indexOf(building),1);
+   building.plot.occupied=false;building.plot.building=null;building.plot.group.visible=true;
+   if(selectedEconomy===building)selectedEconomy=null;
+   showToast('🔥 სოფლის შენობა განადგურდა!');
+ }
+ // A destroyed tower is no longer an eligible attack target.
+ for(const e of state.enemies)if(e.targetObj===building){e.targetObj=null;e.targetRefresh=0;}
+}
+// Towers are a priority even before the attacker reaches the fortress walls.
+function chooseEnemyObjective(enemy){
+ const ep=enemy.group.position;
+ const targets=[...state.builds,...state.economy,...(enemy.type==='ram'?[]:state.guards)];
+ let best=null,bestScore=Infinity;
+ const max=enemy.type==='archer'?31:enemy.type==='ram'?28:22;
+ for(const b of targets){
+   const distance=dist2(ep,b.group.position);
+   if(distance>max)continue;
+   let factor=b.kind==='tower'?.57:b.kind==='ballista'?.60:
+     b.kind==='wall'?.78:b.kind==='trap'?.8:b.kind==='guard'?.97:.85;
+   if(enemy.type==='ram'&&(b.kind==='wall'||b.kind==='tower'))factor*=.80;
+   const score=distance*factor;
+   if(score<bestScore){bestScore=score;best=b}
+ }
+ return best;
+}
 function launchEnemyArrow(enemy,targetType,targetObject=null){
  const arrow=new THREE.Group();const start=enemy.group.position;
  arrow.position.set(start.x,1.54,start.z);
@@ -1213,8 +1417,8 @@ function launchEnemyArrow(enemy,targetType,targetObject=null){
  }
  scene.add(arrow);
  const aim=targetType==='hero'?hero.group.position.clone():
-    targetType==='guard'&&targetObject?targetObject.group.position.clone():castle.position.clone();
- state.enemyShots.push({mesh:arrow,aim,targetType,targetObject,life:2.25,speed:15.5,damage:9+state.wave*.9});
+    (targetType==='guard'||targetType==='structure')&&targetObject?targetObject.group.position.clone():castle.position.clone();
+ state.enemyShots.push({mesh:arrow,aim,targetType,targetObject,life:2.25,speed:15.5,damage:(9+state.wave*.9)*2});
  audio.play('arrow',.24);
 }
 function updateEnemyShots(dt){
@@ -1222,7 +1426,7 @@ function updateEnemyShots(dt){
    shot.life-=dt;
    const target=shot.aim;
    if(!target||shot.life<=0||!shot.mesh){disposeProjectile(shot.mesh);state.enemyShots.splice(state.enemyShots.indexOf(shot),1);continue}
-   const destination=new THREE.Vector3(target.x,shot.targetType==='hero'?1.05:shot.targetType==='guard'?1:2.2,target.z);
+   const destination=new THREE.Vector3(target.x,shot.targetType==='hero'?1.05:shot.targetType==='guard'?1:shot.targetType==='structure'?2:2.2,target.z);
    const v=destination.sub(shot.mesh.position),length=v.length();
    if(length<.46+shot.speed*dt){
      disposeProjectile(shot.mesh);state.enemyShots.splice(state.enemyShots.indexOf(shot),1);
@@ -1233,6 +1437,8 @@ function updateEnemyShots(dt){
      }else if(shot.targetType==='guard'){
        if(state.guards.includes(shot.targetObject)&&dist2(shot.targetObject.group.position,shot.aim)<1.35)
          damageGuard(shot.targetObject,shot.damage);
+     }else if(shot.targetType==='structure'){
+       damageStructure(shot.targetObject,shot.damage);
      }else{
        state.fortHP=Math.max(0,state.fortHP-shot.damage);
        if(state.fortHP<=0)endGame('castle');
@@ -1266,11 +1472,11 @@ function updateHazards(dt){
    if(!h.done&&h.time<=0){
      h.done=true;
      if(dist2(hero.group.position,h.position)<2.5&&state.dashTime<=0){
-       state.hp=Math.max(0,state.hp-23-state.wave*.6);
+       state.hp=Math.max(0,state.hp-(23+state.wave*.6)*2);
        audio.play('damage',.8);
        if(state.hp<=0)endGame('hero');
      }
-     for(const g of [...state.guards])if(dist2(g.group.position,h.position)<2.5)damageGuard(g,29);
+     for(const g of [...state.guards])if(dist2(g.group.position,h.position)<2.5)damageGuard(g,58);
      for(let i=0;i<13;i++)particle(h.position.x+rand(-1.9,1.9),rand(.5,1.3),h.position.z+rand(-1.9,1.9),0xff945f);
      h.time=-.25;
    }
@@ -1391,7 +1597,7 @@ function restoreSnapshot(){
    const b=state.builds[state.builds.length-1];if(!b)continue;
    b.level=Math.max(1,Math.min(4,Number(item.level)||1));
    b.maxHp=Math.max(10,Number(item.maxHp)||b.maxHp);b.hp=Math.min(b.maxHp,Math.max(1,Number(item.hp)||b.maxHp));
-   if(b.kind==='wall')rebuildWall(b);else if(b.kind==='tower')rebuildTower(b);else decorateBuilding(b);makeUpgradeTag(b);
+   if(b.kind==='wall')rebuildWall(b);else if(b.kind==='tower')rebuildTower(b);else decorateBuilding(b);makeUpgradeTag(b);optimizeBuildingVisual(b);
  }
  for(const item of snap.economy.slice(0,economyPlots.length)){
    const plot=economyPlots[item.plot];if(!plot||plot.occupied||!economyDefinitions[item.kind])continue;
@@ -1408,7 +1614,7 @@ function restoreSnapshot(){
       const decor=makeEconomyModel(b.kind,b.level);b.group.add(decor);b.decor=decor;
       for(const child of [...b.group.children])if(child!==decor&&child!==b.hit&&child!==b.label){b.group.remove(child);disposeActor(child)};
    }
-   makeEconomyLabel(b);
+   makeEconomyLabel(b);optimizeBuildingVisual(b);
  }
  state.armyLevel=Math.max(1,Math.min(5,snap.armyLevel||1));
  if(snap.worldDeposits){
@@ -2514,16 +2720,25 @@ const angle=lane+rand(-.22,.22),
    rand(28+Math.min(12,state.wave*.45),35+Math.min(15,state.wave*.42));
 p.group.position.set(Math.cos(angle)*radius,0,Math.sin(angle)*radius);scene.add(p.group);
 // Strong enemy = 2 direct arrows; giant ram/general = 5; super-boss = 10.
-const arrowHits=superBoss?10:(ram||boss)?5:hard?2:1;
+// Alpha 1.08: double enemy survivability, with proportionate hero hit count.
+const arrowHits=(superBoss?10:(ram||boss)?5:hard?2:1)*2;
 const pressure=1+Math.min(.55,(state.wave-1)*.020)+Math.min(.17,(state.castleLevel-1)*.032);
-const hp=Math.max(16,Math.ceil(state.damage*arrowHits*pressure));
+const hp=Math.max(32,Math.ceil(state.damage*arrowHits*pressure));
 const enemyBar=new THREE.Group();enemyBar.position.y=ram?4.00:(boss&&(general||shah))?4.40:cavalry?3.5:hard?2.45:2.28;p.group.add(enemyBar);
 const barBack=cube(enemyBar,boss||ram?1.25:.9,.10,.06,materials.dark);
 const barFront=cube(enemyBar,boss||ram?1.23:.88,.075,.07,boss||ram?materials.gold:materials.red,0,0,.03);
 barBack.castShadow=false;barFront.castShadow=false;
-state.enemies.push({barFront,group:p.group,body:p.body,hp,maxHp:hp,arrowHits,reinforcement,speed:ram?1.45:shah?1.92:boss?2.25:cavalry?rand(3.5,4.4):archer?2.25:hard?2.10:fast?rand(3.65,4.45):rand(2.4,2.95)+Math.min(.85,state.wave*.029),cd:rand(0,.5),hit:0,reward:ram?105:boss?65:archer?14:hard?20:fast?10:8,type:ram?'ram':boss?'captain':cavalry?'cavalry':archer?'archer':hard?'armored':fast?'raider':'soldier',faction:era.era,rank:shah?'shah':general?'general':'soldier',specialCd:rand(1.4,3.2)});
+// Distant troops keep a distinctive silhouette without hundreds of extra shadow passes.
+if(mobileRenderer)p.group.traverse(node=>{if(node.isMesh)node.castShadow=false});
+state.enemies.push({barFront,group:p.group,body:p.body,hp,maxHp:hp,arrowHits,reinforcement,lodColor:factionColors[era.era],
+ targetObj:null,targetRefresh:rand(0,.55),speed:ram?1.45:shah?1.92:boss?2.25:cavalry?rand(3.5,4.4):archer?2.25:hard?2.10:fast?rand(3.65,4.45):rand(2.4,2.95)+Math.min(.85,state.wave*.029),cd:rand(0,.5),hit:0,reward:ram?105:boss?65:archer?14:hard?20:fast?10:8,type:ram?'ram':boss?'captain':cavalry?'cavalry':archer?'archer':hard?'armored':fast?'raider':'soldier',faction:era.era,rank:shah?'shah':general?'general':'soldier',specialCd:rand(1.4,3.2)});
 if(reinforcement)state.supportSpawned++;else state.spawned++;}
-function coin(x,z,amount=8){const g=new THREE.Group();const disk=cyl(g,.3,.3,.09,materials.gold,0,.55,0);disk.rotation.z=Math.PI/2;g.position.set(x,0,z);scene.add(g);state.pickups.push({group:g,time:0,amount:Math.random()<.14?amount+5:amount})}
+function coin(x,z,amount=8){
+ // Prevent thousands of uncollected drop meshes from slowing late-game waves.
+ if(state.pickups.length>=(mobileRenderer?65:100)){
+   state.coins+=amount;return;
+ }
+ const g=new THREE.Group();const disk=cyl(g,.3,.3,.09,materials.gold,0,.55,0);disk.rotation.z=Math.PI/2;g.position.set(x,0,z);scene.add(g);state.pickups.push({group:g,time:0,amount:Math.random()<.14?amount+5:amount})}
 function hitEnemy(e,dmg){audio.play('impact',e.hp<=dmg?.54:.38);
   const impact=e.group.position;
   for(let n=0;n<3;n++)particle(impact.x+rand(-.25,.25),rand(1.0,1.7),impact.z+rand(-.25,.25),0xffc76d);
@@ -2531,16 +2746,16 @@ function hitEnemy(e,dmg){audio.play('impact',e.hp<=dmg?.54:.38);
   state.combo=state.comboTimer>0?Math.min(8,state.combo+1):1;state.comboTimer=2.7;
   state.score+=Math.floor(e.reward*10*(1+.16*(state.combo-1)));
   coin(pos.x,pos.z,e.reward);for(let i=0;i<5;i++)particle(pos.x,1,pos.z,0xffd36b);if(state.kills%25===0)showToast('⚔️ '+state.kills+' მტერი • შესანიშნავია!')}}
-function particle(x,y,z,color){if(state.particles.length>=240)return;const p=sphere(scene,.1,new THREE.MeshBasicMaterial({color,transparent:true,opacity:1}),x,y,z);p.castShadow=false;state.particles.push({mesh:p,vx:rand(-2,2),vy:rand(1,4),vz:rand(-2,2),life:.55})}
+function particle(x,y,z,color){if(state.particles.length>=(mobileRenderer?85:130))return;const p=sphere(scene,.1,new THREE.MeshBasicMaterial({color,transparent:true,opacity:1}),x,y,z);p.castShadow=false;state.particles.push({mesh:p,vx:rand(-2,2),vy:rand(1,4),vz:rand(-2,2),life:.55})}
 // Reclaim unique geometries and materials when large enemy waves or upgraded models vanish.
 const sharedMaterials=new Set(Object.values(materials));
 function disposeActor(group){
  if(!group)return;
  group.traverse(node=>{
-   if(node.geometry)node.geometry.dispose();
+   if(node.geometry&&!cachedGeometries.has(node.geometry))node.geometry.dispose();
    if(node.material){
      for(const material of Array.isArray(node.material)?node.material:[node.material]){
-       if(sharedMaterials.has(material))continue;
+       if(sharedMaterials.has(material)||cachedMaterialSet.has(material))continue;
        if(material.map)material.map.dispose();
        material.dispose();
      }
@@ -2550,7 +2765,7 @@ function disposeActor(group){
 function disposeProjectile(group){
   if(!group)return;
   scene.remove(group);
-  group.traverse(node=>{if(node.geometry)node.geometry.dispose()});
+  group.traverse(node=>{if(node.geometry&&!cachedGeometries.has(node.geometry))node.geometry.dispose()});
 }
 // Aiming: while moving, only shoot towards enemies IN FRONT of the knight;
 // while stationary, turn and target the nearest threat. Prevents arrows firing behind him.
@@ -2644,7 +2859,7 @@ function build(kind,prepaid=false){
   const hp=kind==='wall'?200:kind==='trap'?130:kind==='ballista'?230:170;
   const building={group:g,kind,hp,maxHp:hp,cd:rand(0,.2),slot,hit,level:1};
   hit.userData.building=building;state.builds.push(building);
-  if(building.kind==='tower')rebuildTower(building);else if(building.kind!=='wall')decorateBuilding(building);makeUpgradeTag(building);
+  if(building.kind==='tower')rebuildTower(building);else if(building.kind!=='wall')decorateBuilding(building);makeUpgradeTag(building);optimizeBuildingVisual(building);
   slot.occupied=true;slot.group.visible=false;selectedSlot=null;selectedBuild=building;selectedEconomy=null;if(!prepaid)state.coins-=cost;state.wood-=price.wood;state.totalConstruction++;
   for(let i=0;i<9;i++)particle(g.position.x,rand(.5,1.7),g.position.z,kind==='wall'?0xffdb87:0x8debd2);
   audio.play('build');showToast(defenseNames[kind]+' მზადაა!');
@@ -2688,9 +2903,9 @@ function scheduleEnemyReinforcements(){
  audio.play('wave',.40);
 }
 
-function reset(){for(const name of ['enemies','builds','shots','pickups','particles','villagers','economy','guards','enemyShots','hazards','effects']){for(const item of state[name]){
+function reset(){farVisibleCount=0;finishFarEnemies();for(const name of ['enemies','builds','shots','pickups','particles','villagers','economy','guards','enemyShots','hazards','effects']){for(const item of state[name]){
  if(name==='shots'||name==='enemyShots')disposeProjectile(item.mesh);
- else if(name==='particles'){scene.remove(item.mesh);item.mesh.geometry.dispose();item.mesh.material.dispose()}
+ else if(name==='particles'){scene.remove(item.mesh);if(!cachedGeometries.has(item.mesh.geometry))item.mesh.geometry.dispose();item.mesh.material.dispose()}
  else if(name==='effects'){
    scene.remove(item.group);
    item.group.traverse(n=>{if(n.geometry)n.geometry.dispose();
@@ -2742,7 +2957,7 @@ if(target && state.attackCd<=0){
   if(hero.body.userData.rig){hero.body.userData.rig.draw=0;hero.body.userData.rig.shotFlash=1;}
 }else{}
 animateArcher(hero.body,now,!!target,dt,l>.05,state.dashTime>0);
-const concurrentMax=innerWidth<760?46:75;
+const concurrentMax=mobileRenderer?31:54; // Time-sliced waves preserve enemy totals without excessive draw calls.
 scheduleEnemyReinforcements();
 state.supportCd=Math.max(0,(state.supportCd||0)-dt);
 if(state.supportQueued>0&&state.supportCd<=0&&state.enemies.length<concurrentMax-2){
@@ -2758,6 +2973,7 @@ if(state.waveLeft>0){
 else if(state.enemies.length===0&&state.supportQueued===0&&state.supportStage>=state.supportWaves){state.waveWait+=dt;
   if(state.waveWait>1.9)presentWaveRewards();
 }
+farVisibleCount=0;
 for(const enemy of [...state.enemies]){
   const ep=enemy.group.position;
   if((enemy.stun||0)>0){
@@ -2765,18 +2981,21 @@ for(const enemy of [...state.enemies]){
     enemy.body.rotation.z=Math.sin(now*.016+ep.x)*.13;
     continue;
   }
-  // Attack the fortress unless the defender is within striking distance.
-  let targetingCastle=enemy.type==='ram'||dist2(ep,pos)>6.5;
-  let targetPos=targetingCastle?castle.position:pos,targetObj=null;
-  const threats=enemy.type==='ram'?[...state.builds,...state.economy]:[...state.guards,...state.builds,...state.economy];
-  let closestThreat=3.0;
-  for(const b of threats){
-    const distance=dist2(ep,b.group.position);
-    if(distance<closestThreat){closestThreat=distance;targetPos=b.group.position;targetObj=b;targetingCastle=false}
+  // Re-evaluate objective a few times per second, not 60 times, for hundreds of units.
+  enemy.targetRefresh=(enemy.targetRefresh||0)-dt;
+  if(enemy.targetRefresh<=0||enemy.targetObj&&
+      !(state.builds.includes(enemy.targetObj)||state.economy.includes(enemy.targetObj)||state.guards.includes(enemy.targetObj))){
+    enemy.targetObj=chooseEnemyObjective(enemy);
+    enemy.targetRefresh=.45+(enemy.group.id%5)*.075;
   }
-  if(enemy.type==='archer'){
-    // Marksmen prioritize ranged attacks against the fort or player.
-    if(!targetObj){targetingCastle=dist2(ep,pos)>10;targetPos=targetingCastle?castle.position:pos}
+  // A nearby hero can distract infantry, but rams and archers prioritize buildings.
+  const heroClose=enemy.type!=='ram'&&enemy.type!=='archer'&&dist2(ep,pos)<2.85;
+  let targetObj=heroClose?null:enemy.targetObj;
+  let targetingCastle=!heroClose&&!targetObj;
+  let targetPos=targetObj?targetObj.group.position:targetingCastle?castle.position:pos;
+  // No buildings within reach? Approach the fortress instead of wandering aimlessly.
+  if(enemy.type==='archer'&&!targetObj&&dist2(ep,pos)<8.5){
+    targetingCastle=false;targetPos=pos;
   }
   const dirx=targetPos.x-ep.x,dirz=targetPos.z-ep.z,dist=Math.hypot(dirx,dirz);
   const desiredDistance=enemy.type==='archer'?(targetObj?5.0:targetingCastle?7.3:6.1):
@@ -2789,6 +3008,9 @@ for(const enemy of [...state.enemies]){
     ep.z-=dirz/Math.max(dist,.1)*enemy.speed*.6*dt;
   }
   if(dist>.15)turnActor(enemy.group,Math.atan2(dirx,dirz),dt,10);
+  const isFar=mobileRenderer&&dist2(ep,pos)>(state.enemies.length>18?9.5:13);
+  enemy.group.visible=!isFar;
+  if(isFar)addFarEnemy(enemy);
   enemy.body.position.y=(enemy.type==='ram'?.95:enemy.group.userData.horse?1.18:0)+Math.abs(Math.sin(now*.011+ep.x))*.075;
   if(enemy.group.userData.horse){
     enemy.group.userData.horse.rotation.x=Math.sin(now*.009+ep.x)*.025;
@@ -2797,13 +3019,13 @@ for(const enemy of [...state.enemies]){
   if(enemy.type==='ram'&&enemy.group.userData.ramCart){
      for(const w of enemy.group.userData.ramCart.userData.wheels||[])w.rotation.x+=dt*enemy.speed*2.6;
   }
-  moveActorLegs(enemy.body,now+ep.x*300,!enemy.group.userData.horse&&dist>1.25,dt,enemy.speed/2.2);
-  if(enemy.body.userData.rightArm)enemy.body.userData.rightArm.rotation.x= -.22+Math.sin(now*.013+ep.z)*.16;
-  if(enemy.body.userData.leftArm)enemy.body.userData.leftArm.rotation.x=.14-Math.sin(now*.013+ep.z)*.16;
+  if(!isFar)moveActorLegs(enemy.body,now+ep.x*300,!enemy.group.userData.horse&&dist>1.25,dt,enemy.speed/2.2);
+  if(!isFar&&enemy.body.userData.rightArm)enemy.body.userData.rightArm.rotation.x= -.22+Math.sin(now*.013+ep.z)*.16;
+  if(!isFar&&enemy.body.userData.leftArm)enemy.body.userData.leftArm.rotation.x=.14-Math.sin(now*.013+ep.z)*.16;
   enemy.cd-=dt;enemy.hit=Math.max(0,enemy.hit-dt);
-  enemy.body.scale.setScalar(enemy.hit>0?1.08:1);
-  enemy.body.rotation.z=THREE.MathUtils.lerp(enemy.body.rotation.z,enemy.hit>0?.25:0,Math.min(1,dt*16));
-  enemy.body.userData.head.rotation.y=Math.sin(now*.003+ep.x)*.08;
+  if(!isFar)enemy.body.scale.setScalar(enemy.hit>0?1.08:1);
+  if(!isFar)enemy.body.rotation.z=THREE.MathUtils.lerp(enemy.body.rotation.z,enemy.hit>0?.25:0,Math.min(1,dt*16));
+  if(!isFar)enemy.body.userData.head.rotation.y=Math.sin(now*.003+ep.x)*.08;
   if(enemy.barFront){
     const width=(enemy.type==='captain'||enemy.type==='ram'?1.23:.88);
     enemy.barFront.scale.x=Math.max(.008,enemy.hp/enemy.maxHp);
@@ -2818,9 +3040,9 @@ for(const enemy of [...state.enemies]){
   if(enemy.type==='archer'){
     if(dist<13&&enemy.cd<=0){
       const targetType=targetObj?.kind==='guard'?'guard':
-        !targetingCastle&&!targetObj?'hero':'fort';
-      launchEnemyArrow(enemy,targetType,targetType==='guard'?targetObj:null);
-      enemy.cd=Math.max(1.15,2.0-state.wave*.025);
+        targetObj?'structure':!targetingCastle?'hero':'fort';
+      launchEnemyArrow(enemy,targetType,targetObj);
+      enemy.cd=Math.max(.9,1.8-state.wave*.02);
       enemy.body.userData.rightArm.rotation.x=-.95;
     }
     continue;
@@ -2828,35 +3050,23 @@ for(const enemy of [...state.enemies]){
   if(dist<(targetObj?1.55:targetingCastle?4.15:1.25)&&enemy.cd<=0){
     enemy.cd=.98;
     if(targetObj){
-      if(targetObj.kind==='guard'){damageGuard(targetObj,10+state.wave);continue}
-      targetObj.hp-=(10+state.wave*(state.waveEvent==='siege'?1.4:1))*(enemy.type==='ram'?2.9:1);
-      audio.play('damage',.27);for(let i=0;i<3;i++)particle(ep.x,1,ep.z,0xf4cca4);
-      if(targetObj.hp<=0){
-        scene.remove(targetObj.group);disposeActor(targetObj.group);
-        if(state.builds.includes(targetObj)){
-          state.builds.splice(state.builds.indexOf(targetObj),1);
-          targetObj.slot.occupied=false;targetObj.slot.group.visible=true;
-          if(selectedSlot===targetObj.slot)selectedSlot=null;
-          if(selectedBuild===targetObj)selectedBuild=null;
-          showToast('🧱 გალავანი დაინგრა • აღადგინე');
-        }else if(state.economy.includes(targetObj)){
-          state.economy.splice(state.economy.indexOf(targetObj),1);
-          targetObj.plot.occupied=false;targetObj.plot.building=null;targetObj.plot.group.visible=true;
-          if(selectedEconomy===targetObj)selectedEconomy=null;
-          showToast('🔥 სოფლის შენობა განადგურდა!');
-        }
-      }
+      if(targetObj.kind==='guard'){damageGuard(targetObj,(10+state.wave)*2);continue}
+      const strike=(10+state.wave*(state.waveEvent==='siege'?1.4:1))*
+        (enemy.type==='ram'?2.9:1)*2;
+      damageStructure(targetObj,strike);
+      audio.play('damage',.22);for(let i=0;i<2;i++)particle(ep.x,1,ep.z,0xf4cca4);
     }else if(targetingCastle){
-      state.fortHP=Math.max(0,state.fortHP-(7.7+state.wave*.77)*(state.waveEvent==='siege'?1.45:1)*(enemy.type==='ram'?3.2:1));
+      state.fortHP=Math.max(0,state.fortHP-(7.7+state.wave*.77)*(state.waveEvent==='siege'?1.45:1)*(enemy.type==='ram'?3.2:1)*2);
       audio.play('damage',.35);for(let i=0;i<3;i++)particle(ep.x,1,ep.z,0xff684e);
       if(state.fortHP<=0)endGame('castle');
     }else if(state.dashTime<=0){
-      state.hp=Math.max(0,state.hp-Math.max(4,9+state.wave*.42-state.level*.5));
+      state.hp=Math.max(0,state.hp-Math.max(4,9+state.wave*.42-state.level*.5)*2);
       audio.play('damage',.7);for(let i=0;i<3;i++)particle(pos.x,1,pos.z,0xff5555);
       if(state.hp<=0)endGame('hero');
     }
   }
 }
+finishFarEnemies();
 for(const b of state.builds){
   if(b.kind!=='tower'&&b.kind!=='trap'&&b.kind!=='ballista')continue;
   b.cd-=dt;
@@ -2933,8 +3143,8 @@ for(const item of [...state.pickups]){
  item.group.rotation.y+=dt*3.1;
  const gap=dist2(item.group.position,pos);
  if(gap<5.6&&gap>1.30){const step=Math.min(gap-1.25,dt*(4.5+item.time*.16));item.group.position.x+=(pos.x-item.group.position.x)/gap*step;item.group.position.z+=(pos.z-item.group.position.z)/gap*step}
- if(dist2(item.group.position,pos)<1.7){audio.play('coin',.27);state.coins+=item.amount;for(let i=0;i<4;i++)particle(item.group.position.x,.6,item.group.position.z,0xffdf7f);scene.remove(item.group);state.pickups.splice(state.pickups.indexOf(item),1)}}
-for(const item of [...state.particles]){item.life-=dt;item.mesh.position.x+=item.vx*dt;item.mesh.position.y+=item.vy*dt;item.mesh.position.z+=item.vz*dt;item.vy-=9*dt;item.mesh.material.opacity=Math.max(0,item.life/.55);if(item.life<=0){scene.remove(item.mesh);item.mesh.geometry.dispose();item.mesh.material.dispose();state.particles.splice(state.particles.indexOf(item),1)}}
+ if(dist2(item.group.position,pos)<1.7){audio.play('coin',.27);state.coins+=item.amount;for(let i=0;i<4;i++)particle(item.group.position.x,.6,item.group.position.z,0xffdf7f);scene.remove(item.group);disposeActor(item.group);state.pickups.splice(state.pickups.indexOf(item),1)}}
+for(const item of [...state.particles]){item.life-=dt;item.mesh.position.x+=item.vx*dt;item.mesh.position.y+=item.vy*dt;item.mesh.position.z+=item.vz*dt;item.vy-=9*dt;item.mesh.material.opacity=Math.max(0,item.life/.55);if(item.life<=0){scene.remove(item.mesh);if(!cachedGeometries.has(item.mesh.geometry))item.mesh.geometry.dispose();item.mesh.material.dispose();state.particles.splice(state.particles.indexOf(item),1)}}
 for(const plot of economyPlots)if(!plot.occupied)
     plot.group.visible=dist2(plot.group.position,pos)<((plot.preferredKind==='barracks'||plot.preferredKind==='forge')?57:29);
 for(const econ of state.economy)if(econ.label){
@@ -2945,11 +3155,12 @@ for(const b of state.builds){if(b.tag){
     b.tag.visible=false;
   }}
 animateSlots(now);
-state.miniTimer-=dt;if(state.miniTimer<=0){state.miniTimer=.22;drawMiniMap()}
-state.uiCd-=dt;if(state.uiCd<=0){state.uiCd=.08;ui()}
+state.miniTimer-=dt;if(state.miniTimer<=0){state.miniTimer=.40;drawMiniMap()}
+state.uiCd-=dt;if(state.uiCd<=0){state.uiCd=.19;ui()}
 }
+if(!state.playing){farVisibleCount=0;finishFarEnemies()}
 updateWeather(dt);
-for(const tree of ambientTrees){
+if(!mobileRenderer||Math.floor(now/33)%2===0)for(const tree of ambientTrees){
   tree.rotation.z=Math.sin(now*.0011+tree.userData.wind)*.008;
   tree.rotation.x=Math.sin(now*.0013+tree.userData.wind)*.006;
 }
@@ -2961,7 +3172,7 @@ flag.rotation.y=-.35+Math.sin(now*.0017)*.075;
 const desired=cameraFollowPosition(pos);
 camera.position.lerp(desired,Math.min(1,dt*3.4));
 camera.lookAt(pos.x,1.05,pos.z);
-renderer.render(scene,camera)}
+renderer.render(scene,camera);tuneGraphics(dt)}
 function resize(){
  const width=innerWidth,height=innerHeight,aspect=width/height;
  const view=(width<760?18.5:21.0)/cameraZoom;
@@ -3056,7 +3267,7 @@ camera.position.copy(cameraFollowPosition(hero.group.position));
 camera.lookAt(hero.group.position.x,1.05,hero.group.position.z);showRecord();hasCheckpoint();ui();updateMissions();drawMiniMap();requestAnimationFrame(frame);
 
 if(location.pathname.toLowerCase().includes('developer')){
-const panel=document.createElement('aside');panel.id='devPanel';panel.innerHTML='<div class="devtitle">🛠️ DEVELOPER • GEORGIA 1.06 • ნარიყალა</div><button id="devMoney">🪙 +1000</button><button id="devWood">🌲 +100</button><button id="devGuard">🛡️ მცველი</button><button id="devArcher">🏹 მოკავშირე</button><button id="devHealer">💚 მკურნალი</button><button id="devSiege">🪵 ტარანი</button><button id="devHorde">🔥 დიდი ტალღა</button><button id="devBuild">🎯 ბალისტა</button><button id="devSave">💾 Save</button><button id="devGod">🛡️ უკვდავება OFF</button><button id="devSkip">⏩ შემდეგი ტალღა</button><button id="devFull">❤️ შევსება</button><button id="devWalls">🏰 ყველა ნაგებობა</button>';document.body.append(panel);
+const panel=document.createElement('aside');panel.id='devPanel';panel.innerHTML='<div class="devtitle">🛠️ DEVELOPER • GEORGIA 1.08 • ნარიყალა</div><button id="devMoney">🪙 +1000</button><button id="devWood">🌲 +100</button><button id="devGuard">🛡️ მცველი</button><button id="devArcher">🏹 მოკავშირე</button><button id="devHealer">💚 მკურნალი</button><button id="devSiege">🪵 ტარანი</button><button id="devHorde">🔥 დიდი ტალღა</button><button id="devBuild">🎯 ბალისტა</button><button id="devSave">💾 Save</button><button id="devGod">🛡️ უკვდავება OFF</button><button id="devSkip">⏩ შემდეგი ტალღა</button><button id="devFull">❤️ შევსება</button><button id="devWalls">🏰 ყველა ნაგებობა</button>';document.body.append(panel);
 panel.classList.add('dev-closed');
 const toggle=document.createElement('button');
 toggle.id='devToggle';toggle.type='button';
@@ -3088,6 +3299,6 @@ $('devFull').onclick=()=>{state.hp=state.maxHp;state.fortHP=state.maxFortHP;ui()
 $('devWalls').onclick=()=>{if(!state.playing)return;state.coins+=3000;for(const slot of [...slots]){if(!slot.occupied){hero.group.position.set(slot.group.position.x,0,slot.group.position.z+2);selectedSlot=slot;build(slot.kind)}}hero.group.position.set(2,0,6.5);ui()};
 }
 
-if(location.pathname.toLowerCase().includes('developer'))window.__GEORGIA_DEV={state,hero,slots,audio,economyPlots,resourceNodes,buildEconomy,upgradeEconomy,tickEconomy,
+if(location.pathname.toLowerCase().includes('developer'))window.__GEORGIA_DEV={state,hero,slots,audio,getGraphicsInfo:()=>({...renderer.info.render,farLOD:farBody?.count||0}),economyPlots,resourceNodes,buildEconomy,upgradeEconomy,tickEconomy,
     recruitGuard,updateGuards,makeEnemy,scheduleEnemyReinforcements,paintEconomySign,hitEnemy,shoot,beginWave,bossWarning,saveCheckpoint,restoreSnapshot,decideWaveEvent,battleCry,upgradeCastle,trainArmy,missionProgress,meteorStorm,setCameraZoom,identifyWorldItem,updateWorldConstruction,resetWorldPayment,depositedCoins,depositSpotRing,
     volley,chooseReward,spawnVillagers,presentWaveRewards,get selected(){return selectedBuild},upgradeStructure};

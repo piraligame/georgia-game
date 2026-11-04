@@ -1,9 +1,9 @@
 {
   "name": "georgia-game",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "private": true,
   "type": "module",
-  "description": "GEORGIA Alpha 1.07: bilingual Georgian/English player, top-edge pause, signed updatable Android release",
+  "description": "GEORGIA Alpha 1.08: optimized renderer and pooled geometry, double-strength enemies and targeted tower destruction, stable signing",
   "scripts": {
     "start": "npx serve . -l 8080",
     "check": "node --check main.js",
