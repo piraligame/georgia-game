@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="ka"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><meta name="theme-color" content="#101c1b"><title>GEORGIA — სამეფოს დაცვა</title><link rel="icon" type="image/svg+xml" href="./favicon.svg"><link rel="stylesheet" href="./style.css?v=0.4"></head>
+<html lang="ka"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><meta name="theme-color" content="#101c1b"><title>GEORGIA — სამეფოს დაცვა</title><link rel="icon" type="image/svg+xml" href="./favicon.svg"><link rel="stylesheet" href="./style.css?v=0.5"></head>
 <body>
 <div id="game"></div><div id="vignette"></div>
 <div id="hud">
-  <div class="brand"><b>GEORGIA</b><span>სამეფოს დაცვა • ALPHA 0.4</span></div>
+  <div class="brand"><b>GEORGIA</b><span>სამეფოს დაცვა • ALPHA 0.5</span></div>
   <div class="statline"><div class="stat">🪙 <b id="coins">0</b></div><div class="stat">🌊 <b id="wave">1</b></div><div class="stat">⚔️ <b id="kills">0</b></div></div>
   <div class="healthrow"><div class="healthtrack"><div id="healthbar"></div></div><span id="healthtext">100 / 100</span></div><div class="fortrow">🏰 ციხე <b id="fortressHP">500 / 500</b></div>
 </div>
@@ -11,11 +11,11 @@
   <button id="musicToggle" type="button" aria-label="ფონური მუსიკა" aria-pressed="true">🎵 მუსიკა</button>
   <button id="sfxToggle" type="button" aria-label="საბრძოლო ხმები" aria-pressed="true">🔊 ეფექტები</button>
 </div>
-<div id="guide">🏹 ცოცხალი მშვილდის ანიმაცია • 🔊 ბრძოლის ხმები • 🏰 დაიცავი ციხე</div>
+<div id="guide">🏹 ახალი საბრძოლო ანიმაციები • 🔊 ბრძოლის ხმები • 🏰 დაიცავი ციხე</div>
 <div id="toast"></div><div id="waveInfo"><span id="waveObjective">🏰 დაიცავი ციხე</span><span id="waveRemain">0 მტერი</span></div>
 <div id="structurePanel" class="structure-panel hidden"><span id="structureLabel">🏹 კოშკი • დონე 1</span><button id="structureUpgradeBtn">⬆️ გააძლიერე 🪙 <b id="structurePrice">40</b></button></div><div id="buildpanel"><div class="panel-title">🏰 ააშენე და განავითარე <span id="buildProgress">0/18</span></div><div id="spotHint">მიუახლოვდი 🟡 ადგილს • შეეხე შენობას გასაძლიერებლად</div><div class="buildrow"><button id="wallBtn" class="build"><b>🧱 კედელი</b><small>🪙 20</small></button><button id="towerBtn" class="build"><b>🏹 კოშკი</b><small>🪙 45</small></button><button id="upgradeBtn" class="build"><b>⬆️ გაძლიერება</b><small id="upgradePrice">🪙 60</small></button></div></div>
 <div id="joystick" aria-hidden="true"><div id="stick"></div></div>
 <div id="actions"><button id="dashBtn">⚡<small>გაქცევა</small></button><button id="healBtn">❤️<small>+30 HP<br>🪙 35</small></button></div>
-<div id="center"><section id="intro" class="modal"><div class="crest flag-hero">🇬🇪</div><div class="eyebrow">🇬🇪 ააშენე და დაიცავი ქართული ციხესიმაგრე</div><h1>GEORGIA</h1><h2>დაიცავი შენი სამეფო</h2><p>იმოძრავე, ისროლე მშვილდიდან, შეაგროვე მონეტები, ააშენე და გააძლიერე გალავნები და მშვილდოსნის კოშკები. შეაჩერე მტრის უწყვეტი ნაკადი, გააძლიერე მშვილდი და ციხე, და მოიგერიე ყველა შეტევა!</p><button id="startBtn" class="primary">🏹 თამაშის დაწყება</button><small>ტელეფონი: ქვედა ნაწილში შეეხე და ამოძრავე თითი • კომპიუტერი: WASD / ისრები<br>კედელი Q • კოშკი E • გაძლიერება R • Dash Space • 🎵 მუსიკა იწყება თამაშთან ერთად</small></section><section id="over" class="modal hidden"><div class="crest">⚔</div><h1>ბრძოლა დასრულდა</h1><p id="result"></p><button id="againBtn" class="primary">თავიდან თამაში</button></section></div>
-<script type="module" src="./main.js?v=0.4"></script>
+<div id="center"><section id="intro" class="modal"><div class="crest flag-hero">🇬🇪</div><div class="eyebrow">🇬🇪 ააშენე და დაიცავი ქართული ციხესიმაგრე</div><h1>GEORGIA</h1><h2>ააშენე ციხე • მოიგერიე მტერი</h2><p>იმოძრავე ცოცხალი გმირით, დამიზნე და ისროლე მშვილდიდან, შეაგროვე მონეტები, ააშენე და გააძლიერე გალავნები და მშვილდოსნის კოშკები. შეაჩერე მტრის უწყვეტი ნაკადი, გააძლიერე მშვილდი და ციხე, და მოიგერიე ყველა შეტევა!</p><button id="startBtn" class="primary">🏹 თამაშის დაწყება</button><small>ტელეფონი: ქვედა ნაწილში შეეხე და ამოძრავე თითი • კომპიუტერი: WASD / ისრები<br>კედელი Q • კოშკი E • გაძლიერება R • Dash Space • 🎵 მუსიკა იწყება თამაშთან ერთად</small></section><section id="over" class="modal hidden"><div class="crest">⚔</div><h1>ბრძოლა დასრულდა</h1><p id="result"></p><button id="againBtn" class="primary">თავიდან თამაში</button></section></div>
+<script type="module" src="./main.js?v=0.5"></script>
 </body></html>

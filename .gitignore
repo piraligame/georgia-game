@@ -14,3 +14,6 @@ patch-alpha03-*.py
 alpha04-*.cjs
 alpha04-*.png
 patch-alpha04-*.py
+alpha05-*.cjs
+alpha05-*.png
+patch-alpha05-*.py

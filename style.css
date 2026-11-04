@@ -73,3 +73,20 @@
 @media(max-width:360px){
  #audioControls button{padding:5px 6px;font-size:9px}
 }
+
+
+/* Alpha 0.5: less intrusive UI and restrained visual markers */
+#toast{top:clamp(170px,19.5vh,215px);left:50%;max-width:min(84vw,340px);width:max-content;
+ transform:translate(-50%,-9px);font-size:11px;line-height:1.35;font-weight:800;
+ padding:8px 12px;border:1px solid #f9dd974a;border-radius:11px;
+ background:#123026dd;box-shadow:0 5px 18px #08160a55;backdrop-filter:blur(7px)}
+#toast.show{transform:translate(-50%,0)}
+#vignette{background:radial-gradient(ellipse at 50% 42%,transparent 56%,rgba(5,22,17,.27) 100%)}
+#waveInfo{background:#122b25a8;border:1px solid #ffedaa42;box-shadow:0 3px 10px #07190834}
+#spotHint{font-size:9px;color:#dbe5cbde}
+#structurePanel{background:linear-gradient(110deg,#214036ee,#1a3738f0)}
+#buildpanel{background:linear-gradient(130deg,#29493dee,#173336f1)}
+@media(max-width:780px){
+ #toast{top:clamp(168px,20vh,197px);font-size:11px;padding:7px 11px}
+ #guide{opacity:.65}
+}

@@ -42,8 +42,18 @@ function rand(min,max){return min+Math.random()*(max-min)}
 function dist2(a,b){return Math.hypot(a.x-b.x,a.z-b.z)}
 const floor=mesh(scene,new THREE.PlaneGeometry(115,115),materials.grass);
 floor.rotation.x=-Math.PI/2;floor.position.y=-.06;floor.castShadow=false;
-const pathMat=mat(0xd0ba86);
-for(let i=0;i<80;i++){const x=rand(-47,47),z=rand(-47,47);const patch=mesh(scene,new THREE.PlaneGeometry(rand(.8,3.2),rand(.8,3.2)),Math.random()<.4?pathMat:mat(Math.random()<.5?0x6ea566:0x8bbb73),x,-.045,z);patch.rotation.x=-Math.PI/2;patch.rotation.z=rand(0,6);patch.castShadow=false}
+const patchMat=[
+  new THREE.MeshBasicMaterial({color:0x98bb7d,transparent:true,opacity:.14,depthWrite:false,side:THREE.DoubleSide}),
+  new THREE.MeshBasicMaterial({color:0x62975f,transparent:true,opacity:.12,depthWrite:false,side:THREE.DoubleSide}),
+  new THREE.MeshBasicMaterial({color:0xbdaf7b,transparent:true,opacity:.09,depthWrite:false,side:THREE.DoubleSide})
+];
+for(let i=0;i<110;i++){
+  const x=rand(-49,49),z=rand(-49,49);
+  const patch=mesh(scene,new THREE.CircleGeometry(rand(.65,1.7),9),patchMat[i%3],x,-.044,z);
+  patch.rotation.x=-Math.PI/2;patch.rotation.z=rand(0,6.28);
+  patch.scale.set(rand(.5,1.85),rand(.65,1.55),1);
+  patch.castShadow=false;
+}
 const trunkMat=mat(0x70583b),leaf1=mat(0x36774d),leaf2=mat(0x5b9255),leaf3=mat(0x739e5d);
 for(let i=0;i<90;i++){let x=rand(-47,47),z=rand(-47,47);if(Math.hypot(x,z)<11)continue;const t=new THREE.Group();t.position.set(x,0,z);cyl(t,.25,.35,2.3,trunkMat,0,1,0);cone(t,1.5,3.5,[leaf1,leaf2,leaf3][i%3],0,3.5,0);cone(t,1.15,3,[leaf1,leaf2,leaf3][(i+1)%3],0,5,0);t.scale.setScalar(rand(.7,1.25));scene.add(t)}
 for(let i=0;i<75;i++){let x=rand(-35,35),z=rand(-35,35);if(Math.hypot(x,z)<6)continue;const g=new THREE.Group();g.position.set(x,0,z);if(i%3===0){sphere(g,rand(.17,.35),materials.rock,0,.1,0)}else{cone(g,.32,rand(.45,.85),i%2?leaf2:leaf3,0,.28,0)}scene.add(g)}
@@ -90,84 +100,161 @@ const flag=mesh(castle,new THREE.PlaneGeometry(1.85,1.18),new THREE.MeshBasicMat
 flag.rotation.y=-.35;
 cyl(castle,.05,.05,4,materials.dark,0,5,0);
 
-const groundRing=mesh(scene,new THREE.RingGeometry(5.5,5.8,64),new THREE.MeshBasicMaterial({color:0xf4d793,transparent:true,opacity:.14,side:THREE.DoubleSide}),0,.015,0);
-groundRing.rotation.x=-Math.PI/2;
-function person(color,hero=false){const g=new THREE.Group(),body=new THREE.Group();g.add(body);
-cyl(body,.4,.49,.95,mat(color),0,.96,0);
-sphere(body,.34,materials.skin,0,1.7,0);
-sphere(body,.35,hero?materials.dark:mat(0x583e39),0,1.94,-.07);
-cube(body,.18,.6,.18,materials.dark,-.22,.31,0);cube(body,.18,.6,.18,materials.dark,.22,.31,0);
-if(!hero){cube(body,.18,.72,.19,mat(color),-.49,1.05,0);cube(body,.18,.72,.19,mat(color),.49,1.05,0);}
-if(hero){
-  // A low-poly archer with articulated arms, curved decorated bow, animated bowstring.
-  cube(body,.67,.15,.6,materials.gold,0,1.43,-.2);
-  const leftArm=new THREE.Group();leftArm.position.set(.36,1.30,.03);body.add(leftArm);
-  cube(leftArm,.24,.68,.25,mat(color),.11,-.26,.10);
-  sphere(leftArm,.17,materials.skin,.11,-.63,.14);
-  const rightArm=new THREE.Group();rightArm.position.set(-.35,1.30,0);body.add(rightArm);
-  cube(rightArm,.24,.68,.25,mat(color),-.04,-.28,.08);
-  sphere(rightArm,.17,materials.skin,-.04,-.60,.16);
-  const bow=new THREE.Group();leftArm.add(bow);bow.position.set(.2,-.42,.42);
-  bow.scale.set(1.23,1.13,1.16);
-  const wood=mat(0x8b5129,.66),lacquer=mat(0xc89c57,.46),cord=mat(0xece0a9,.75);
-  const outline=new THREE.CatmullRomCurve3([
-    new THREE.Vector3(.04,-.69,0),new THREE.Vector3(.28,-.45,0),
-    new THREE.Vector3(.35,-.21,0),new THREE.Vector3(.32,0,0),
-    new THREE.Vector3(.35,.21,0),new THREE.Vector3(.28,.45,0),
-    new THREE.Vector3(.04,.69,0)
-  ]);
-  mesh(bow,new THREE.TubeGeometry(outline,32,.065,8,false),wood);
-  for(const h of [-.47,.47])cube(bow,.09,.19,.10,lacquer,.24,h,0);
-  cube(bow,.15,.28,.17,materials.dark,.34,0,0);
-  for(const yy of [-.66,.66]){sphere(bow,.11,lacquer,.05,yy,0);}
-  const stringA=cyl(bow,.025,.025,.66,cord),stringB=cyl(bow,.025,.025,.66,cord);
-  const heldArrow=new THREE.Group();bow.add(heldArrow);
-  const shaft=cyl(heldArrow,.026,.026,1.18,materials.wood,0,0,0);shaft.rotation.x=Math.PI/2;
-  const head=cone(heldArrow,.09,.19,materials.wall,0,0,.65);head.rotation.x=Math.PI/2;
-  for(const xx of [-.07,.07])cube(heldArrow,.07,.12,.20,materials.yellow,xx,0,-.48);
-  const quiver=cyl(body,.2,.24,.75,materials.wood,-.42,1.15,-.42);quiver.rotation.z=-.22;
-  for(const xx of [-.53,-.40,-.28])cyl(body,.021,.021,.65,cord,xx,1.66,-.44);
-  const ornament=cube(body,.15,.45,.07,materials.gold,-.31,1.11,-.62);ornament.rotation.z=-.16;
-  body.userData.rig={bow,leftArm,rightArm,stringA,stringB,heldArrow,draw:0,shotFlash:0,phase:rand(0,6),nock:new THREE.Vector3(),fired:0};
-}else{const spear=cyl(body,.06,.06,1.5,materials.wood,.52,.98,.23);spear.rotation.z=-.12;cone(body,.14,.35,materials.wall,.62,1.85,.23)}
-return {group:g,body};}
+// The former groundRing was removed: no thick ring below the player or castle.
+function person(color,hero=false){
+  const g=new THREE.Group(),body=new THREE.Group();g.add(body);
+  const costume=mat(color);
+  const pants=mat(0x35423f),boot=mat(0x41362d);
+  cyl(body,.41,.49,.95,costume,0,1.04,0);
+  // Layered leather jerkin, belt and light armour improve the character's silhouette.
+  cube(body,.93,.16,.6,materials.wood,0,.77,0);
+  const buckle=cube(body,.24,.18,.09,materials.gold,0,.78,.36);
+  if(hero){
+    cube(body,.83,.17,.62,materials.gold,0,1.45,-.12);
+    cube(body,.46,.24,.35,materials.dark,0,1.12,-.42);
+    for(const side of [-1,1])cube(body,.27,.35,.24,materials.wood,side*.46,1.34,0);
+  }
+  const head=new THREE.Group();head.position.set(0,1.73,0);body.add(head);
+  sphere(head,.34,materials.skin);
+  sphere(head,.35,hero?materials.dark:mat(0x583e39),0,.22,-.075);
+  if(hero){
+    cube(head,.4,.12,.24,materials.dark,0,.17,.19);
+    sphere(head,.065,materials.dark,-.12,.025,.3);
+    sphere(head,.065,materials.dark,.12,.025,.3);
+  }
+  const legs=[];
+  for(const sign of [-1,1]){
+    const pivot=new THREE.Group();pivot.position.set(sign*.24,.63,0);body.add(pivot);
+    cube(pivot,.26,.54,.29,pants,0,-.28,0);
+    cube(pivot,.29,.23,.42,boot,0,-.57,.075);
+    legs.push(pivot);
+  }
+  body.userData.legs=legs;body.userData.head=head;
+  if(hero){
+    const leftArm=new THREE.Group();leftArm.position.set(.38,1.37,.03);body.add(leftArm);
+    cube(leftArm,.28,.59,.26,costume,.09,-.27,.05);
+    sphere(leftArm,.17,materials.skin,.12,-.60,.10);
+    const rightArm=new THREE.Group();rightArm.position.set(-.38,1.37,.02);body.add(rightArm);
+    cube(rightArm,.28,.60,.26,costume,-.08,-.28,.05);
+    sphere(rightArm,.17,materials.skin,-.09,-.61,.10);
+
+    // Functional bow shape with decorated tips; draw is on local -Z axis.
+    const bow=new THREE.Group();leftArm.add(bow);bow.position.set(.26,-.44,.35);
+    bow.scale.set(1.22,1.24,1.1);
+    const wood=mat(0x754021,.69),lacquer=mat(0xc7954b,.4),cord=mat(0xffe6ae,.71);
+    const outline=new THREE.CatmullRomCurve3([
+      new THREE.Vector3(.04,-.73,0),new THREE.Vector3(.21,-.60,.015),
+      new THREE.Vector3(.36,-.29,.055),new THREE.Vector3(.4,0,.06),
+      new THREE.Vector3(.36,.29,.055),new THREE.Vector3(.21,.60,.015),
+      new THREE.Vector3(.04,.73,0)
+    ]);
+    mesh(bow,new THREE.TubeGeometry(outline,38,.058,8,false),wood);
+    const inner=new THREE.CatmullRomCurve3([
+      new THREE.Vector3(.08,-.62,-.07),new THREE.Vector3(.28,-.28,-.07),
+      new THREE.Vector3(.32,0,-.06),new THREE.Vector3(.28,.28,-.07),
+      new THREE.Vector3(.08,.62,-.07)
+    ]);
+    mesh(bow,new THREE.TubeGeometry(inner,32,.019,5,false),lacquer);
+    for(const sign of [-1,1]){
+      sphere(bow,.105,lacquer,.06,sign*.72,0);
+      cube(bow,.14,.14,.11,materials.gold,.21,sign*.55,0);
+    }
+    cube(bow,.16,.26,.16,materials.dark,.38,0,.04);
+    const stringA=cyl(bow,.020,.020,.75,cord),stringB=cyl(bow,.020,.020,.75,cord);
+    const heldArrow=new THREE.Group();bow.add(heldArrow);
+    const shaft=cyl(heldArrow,.028,.028,1.36,materials.wood,0,0,0);shaft.rotation.x=Math.PI/2;
+    const arrowTip=cone(heldArrow,.12,.23,materials.wall,0,0,.75);arrowTip.rotation.x=Math.PI/2;
+    for(const xx of [-.09,.09])cube(heldArrow,.06,.14,.22,materials.yellow,xx,0,-.56);
+    const quiver=cyl(body,.22,.25,.8,materials.wood,-.42,1.2,-.44);quiver.rotation.z=-.25;
+    for(const xx of [-.51,-.36,-.23]){cyl(body,.025,.025,.70,materials.wall,xx,1.69,-.47)}
+    const cape=mesh(body,new THREE.PlaneGeometry(.85,1.18),new THREE.MeshStandardMaterial({color:0x405953,side:THREE.DoubleSide,roughness:1}),0,1.1,-.46);
+    cape.rotation.x=-.12;
+    body.userData.rig={bow,leftArm,rightArm,stringA,stringB,heldArrow,draw:0,shotFlash:0,phase:rand(0,6),
+      recoil:0,pose:'idle',poseTime:0,aimCharge:0,cape};
+  }else{
+    const leftArm=new THREE.Group();leftArm.position.set(-.39,1.4,.02);body.add(leftArm);
+    cube(leftArm,.26,.68,.22,costume,-.05,-.32,.04);
+    const rightArm=new THREE.Group();rightArm.position.set(.39,1.4,.02);body.add(rightArm);
+    cube(rightArm,.26,.68,.22,costume,.05,-.32,.04);
+    const spear=cyl(rightArm,.06,.06,1.5,materials.wood,.14,-.05,.23);spear.rotation.z=-.12;
+    const spearTip=cone(rightArm,.14,.35,materials.wall,.25,.80,.23);
+    body.userData.leftArm=leftArm;body.userData.rightArm=rightArm;
+  }
+  return {group:g,body};
+}
 
 function alignRod(obj,a,b){
   obj.position.copy(a).add(b).multiplyScalar(.5);
   obj.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),b.clone().sub(a).normalize());
   obj.scale.y=b.distanceTo(a)/.66;
 }
-function animateArcher(body,time,hasTarget,dt){
-  const rig=body.userData.rig;if(!rig)return;
-  const cooldown=body===hero.body?state.attackCd:(body.userData.attackCd??.5);
-  const ready=body===hero.body?.39:.58;
-  // Pull the string back while reloading; snap the nock forward upon release.
-  const goal=hasTarget?THREE.MathUtils.clamp(1-Math.max(0,cooldown)/ready,0,1):.03;
-  rig.draw=THREE.MathUtils.lerp(rig.draw,goal,Math.min(1,dt*(hasTarget?13:4.5)));
-  const pull=rig.draw*.67,move=Math.sin(time*.002+rig.phase);
-  const recoil=rig.shotFlash;
-  rig.leftArm.rotation.z=-.23+move*.04-recoil*.095;
-  rig.leftArm.rotation.x=-.42+Math.sin(time*.003+rig.phase)*.035;
-  rig.rightArm.rotation.x=-.40-rig.draw*.90+recoil*.22;
-  rig.rightArm.rotation.y=-.05-rig.draw*.30;
-  rig.rightArm.rotation.z=-.23-rig.draw*.21;
-  rig.bow.rotation.z=Math.sin(time*.0027+rig.phase)*.038-recoil*.17;
-  rig.bow.rotation.y=Math.sin(time*.0017+rig.phase)*.045;
-  rig.heldArrow.position.set(.01,.01,-.15-pull);
-  rig.heldArrow.visible=hasTarget&&recoil<.70;
-  // Natural release vibration after the arrow leaves the string.
-  const vibrate=Math.sin(recoil*31)*recoil*.08;
-  const nock=new THREE.Vector3(-.02,0,-pull+vibrate);
-  alignRod(rig.stringA,new THREE.Vector3(.04,.69,0),nock);
-  alignRod(rig.stringB,nock,new THREE.Vector3(.04,-.69,0));
-  rig.shotFlash=Math.max(0,recoil-dt*6.2);
+function moveActorLegs(body,time,moving,dt,speed=1){
+  const legs=body.userData.legs;
+  if(!legs)return;
+  const stride=moving?Math.sin(time*.014*speed)*.63:0;
+  legs[0].rotation.x=THREE.MathUtils.lerp(legs[0].rotation.x,stride,Math.min(1,dt*14));
+  legs[1].rotation.x=THREE.MathUtils.lerp(legs[1].rotation.x,-stride,Math.min(1,dt*14));
 }
-
-const hero=person(0x286b6a,true);hero.group.position.set(2,0,6.5);scene.add(hero.group);
-const heroShadow=mesh(hero.group,new THREE.CircleGeometry(.65,20),new THREE.MeshBasicMaterial({color:0x071918,transparent:true,opacity:.22,depthWrite:false}),0,.02,0);heroShadow.rotation.x=-Math.PI/2;heroShadow.castShadow=false;
-const heroAura=mesh(hero.group,new THREE.RingGeometry(.69,.87,32),new THREE.MeshBasicMaterial({color:0xffdb8a,transparent:true,opacity:.62,depthWrite:false,depthTest:false,side:THREE.DoubleSide}),0,.047,0);
-heroAura.rotation.x=-Math.PI/2;heroAura.castShadow=false;
-const heroMarker=cone(hero.group,.19,.35,new THREE.MeshBasicMaterial({color:0x86e8cb,depthTest:false}),0,2.66,0);heroMarker.rotation.x=Math.PI;heroMarker.castShadow=false;
+function turnActor(g,desired,dt,sharpness=13){
+  const delta=Math.atan2(Math.sin(desired-g.rotation.y),Math.cos(desired-g.rotation.y));
+  g.rotation.y+=delta*Math.min(1,dt*sharpness);
+}
+function animateArcher(body,time,hasTarget,dt,moving=false,dashing=false){
+  const rig=body.userData.rig;if(!rig)return;
+  const isHero=body===hero.body;
+  const cooldown=isHero?state.attackCd:(body.userData.attackCd??.6);
+  const reload=isHero?.39:.60;
+  const canAim=hasTarget&&rig.shotFlash<.70;
+  const charge=canAim?THREE.MathUtils.clamp(1-Math.max(0,cooldown)/reload,0,1):0;
+  const desiredPose=dashing?'dash':rig.shotFlash>.20?'release':canAim?(charge>.35?'draw':'aim'):moving?'run':'idle';
+  if(rig.pose!==desiredPose){rig.pose=desiredPose;rig.poseTime=0}else rig.poseTime+=dt;
+  const smooth=Math.min(1,dt*13);
+  const normalized=THREE.MathUtils.clamp(charge,0,1);
+  const targetDraw=(canAim?normalized:.015);
+  rig.draw=THREE.MathUtils.lerp(rig.draw,targetDraw,Math.min(1,dt*17));
+  const pull=rig.draw*.67;
+  const walk=moving?Math.sin(time*.016+rig.phase):0;
+  const breath=Math.sin(time*.0028+rig.phase);
+  moveActorLegs(body,time,moving,dt,dashing?2:1);
+  const aim=hasTarget?1:0;
+  // Distinct, large silhouette changes: lowered bow at idle vs extended arm in aim.
+  const leftX=dashing?-.28:aim?-1.20:(moving?-.35:-.13);
+  const rightX=dashing?.62:aim?-1.06-normalized*.17:(moving?-.20:-.11);
+  rig.leftArm.rotation.x=THREE.MathUtils.lerp(rig.leftArm.rotation.x,leftX+(moving?walk*.09:breath*.025),smooth);
+  rig.rightArm.rotation.x=THREE.MathUtils.lerp(rig.rightArm.rotation.x,rightX+(moving?-walk*.18:0),smooth);
+  rig.leftArm.rotation.z=THREE.MathUtils.lerp(rig.leftArm.rotation.z,aim?-.17:-.38,smooth);
+  rig.rightArm.rotation.z=THREE.MathUtils.lerp(rig.rightArm.rotation.z,aim?-.49:-.18,smooth);
+  rig.leftArm.rotation.y=THREE.MathUtils.lerp(rig.leftArm.rotation.y,aim?.17:-.19,smooth);
+  rig.rightArm.rotation.y=THREE.MathUtils.lerp(rig.rightArm.rotation.y,aim?-.26:-.05,smooth);
+  rig.rightArm.position.z=THREE.MathUtils.lerp(rig.rightArm.position.z,aim?-.05-pull*.4:0,smooth);
+  rig.bow.rotation.x=THREE.MathUtils.lerp(rig.bow.rotation.x,aim?.07:(moving?-.73:-1.06),smooth);
+  rig.bow.rotation.z=THREE.MathUtils.lerp(rig.bow.rotation.z,aim?-.11:-.36,smooth);
+  rig.bow.rotation.y=Math.sin(time*.003+rig.phase)*.035;
+  const recoil=rig.shotFlash;
+  rig.bow.rotation.x+=recoil*.33;
+  rig.leftArm.rotation.x+=recoil*.31;
+  rig.rightArm.rotation.x+=recoil*.56;
+  rig.heldArrow.position.set(.04,.015,-.18-pull);
+  rig.heldArrow.visible=hasTarget&&recoil<.58;
+  const nock=new THREE.Vector3(-.08,0,-pull+Math.sin(recoil*25)*recoil*.07);
+  alignRod(rig.stringA,new THREE.Vector3(.04,.73,0),nock);
+  alignRod(rig.stringB,nock,new THREE.Vector3(.04,-.73,0));
+  body.userData.head.rotation.y=Math.sin(time*.0018+rig.phase)*.10;
+  body.position.y=(moving?Math.abs(walk)*.095:breath*.02);
+  body.rotation.z=THREE.MathUtils.lerp(body.rotation.z,(moving?walk*.075:breath*.021)-recoil*.10,smooth);
+  body.rotation.x=THREE.MathUtils.lerp(body.rotation.x,(dashing?-.34:aim?-.055:0)+recoil*.10,smooth);
+  if(rig.cape){
+    rig.cape.rotation.x=-.17+(moving?walk*.09:breath*.025)+(dashing?-.25:0);
+  }
+  rig.shotFlash=Math.max(0,recoil-dt*5.4);
+}
+const hero=person(0x286b6a,true);hero.group.position.set(2,0,6.5);hero.group.scale.setScalar(1.10);scene.add(hero.group);
+const heroShadow=mesh(hero.group,new THREE.CircleGeometry(.69,32),new THREE.MeshBasicMaterial({
+  color:0x112b23,transparent:true,opacity:.20,depthWrite:false
+}),0,.012,0);heroShadow.rotation.x=-Math.PI/2;heroShadow.castShadow=false;
+const heroMarker=cone(hero.group,.14,.27,new THREE.MeshBasicMaterial({
+  color:0xb8f0d9,transparent:true,opacity:.72,depthTest:false
+}),0,2.64,0);heroMarker.rotation.x=Math.PI;heroMarker.castShadow=false;
 // Fortress construction: fourteen wall sections and four corner archer towers.
 const slots=[];let selectedSlot=null,selectedBuild=null;
 
@@ -214,12 +301,18 @@ function upgradeStructure(){
 }
 function createSlot(kind,x,z,rotation=0){
   const group=new THREE.Group();group.position.set(x,0,z);scene.add(group);
-  const ring=mesh(group,new THREE.RingGeometry(.83,1.18,32),new THREE.MeshBasicMaterial({
-    color:kind==='wall'?0xffda80:0x81f1db,transparent:true,opacity:.63,side:THREE.DoubleSide,depthWrite:false
-  }),0,.052,0);ring.rotation.x=-Math.PI/2;ring.castShadow=false;
-  const disk=mesh(group,new THREE.CircleGeometry(.79,32),new THREE.MeshBasicMaterial({
-    color:kind==='wall'?0xf1df93:0x81ead7,transparent:true,opacity:.16,side:THREE.DoubleSide,depthWrite:false
-  }),0,.045,0);disk.rotation.x=-Math.PI/2;disk.castShadow=false;
+  const ghostLines=new THREE.Group();group.add(ghostLines);
+  const markerMat=new THREE.MeshBasicMaterial({
+    color:kind==='wall'?0xebd49f:0x96d7c1,transparent:true,opacity:.68,depthWrite:false,depthTest:true
+  });
+  for(const x of [-1,1])for(const z of [-1,1]){
+    const hx=cube(ghostLines,.34,.022,.066,markerMat,x*.67,.052,z*.86);
+    const hz=cube(ghostLines,.066,.022,.34,markerMat,x*.86,.052,z*.67);
+    hx.castShadow=false;hz.castShadow=false;
+  }
+  const disk=mesh(group,new THREE.PlaneGeometry(.96,.96),new THREE.MeshBasicMaterial({
+    color:kind==='wall'?0xffe1a6:0xa9e0c8,transparent:true,opacity:.055,side:THREE.DoubleSide,depthWrite:false
+  }),0,.038,0);disk.rotation.x=-Math.PI/2;disk.castShadow=false;
   const ghost=new THREE.Group();group.add(ghost);
   ghost.rotation.y=rotation;
   if(kind==='wall'){
@@ -232,7 +325,7 @@ function createSlot(kind,x,z,rotation=0){
   const hit=mesh(group,new THREE.CylinderGeometry(1.30,1.30,.23,24),new THREE.MeshBasicMaterial({
     color:0xffffff,transparent:true,opacity:.001,depthWrite:false
   }),0,.17,0);hit.castShadow=false;
-  const slot={kind,group,ring,hit,rotation,occupied:false};hit.userData.slot=slot;slots.push(slot);
+  const slot={kind,group,ring:ghostLines,hit,rotation,occupied:false};hit.userData.slot=slot;slots.push(slot);
 }
 for(const x of [-4.9,-1.65,1.65,4.9])createSlot('wall',x,-8);
 for(const x of [-4.9,4.9])createSlot('wall',x,8);
@@ -268,8 +361,9 @@ function animateSlots(time){
   for(const slot of slots){
     if(slot.occupied)continue;
     const active=selectedSlot===slot;
-    slot.ring.material.opacity=active?.98:(.46+.13*Math.sin(time*.003+slot.group.position.x));
-    slot.ring.scale.setScalar(active?1.16:1+.04*Math.sin(time*.004+slot.group.position.z));
+    const pulse=active?1.18:1+.025*Math.sin(time*.004+slot.group.position.z);
+    slot.ring.scale.setScalar(pulse);
+    for(const mark of slot.ring.children){mark.material.opacity=active?.9:(.45+.09*Math.sin(time*.002+slot.group.position.x))}
   }
 }
 const state={playing:false,dead:false,coins:80,hp:100,maxHp:100,fortHP:500,maxFortHP:500,wave:1,kills:0,level:1,damage:24,attackCd:0,spawnCd:0,waveLeft:0,spawned:0,waveTotal:0,builds:[],enemies:[],shots:[],pickups:[],particles:[],dashCd:0,dashTime:0,lastTime:0,waveWait:0};
@@ -309,6 +403,21 @@ function makeEnemy(){const boss=state.wave%4===0&&state.spawned===state.waveTota
 const roll=Math.random(),hard=state.wave>=3&&roll<.12,fast=state.wave>=2&&roll>.64;
 const p=person(boss?0x9d6e4f:hard?0x734773:fast?0x8b9d53:0xb94d47);
 p.group.scale.setScalar(boss?1.55:hard?1.28:fast?.89:1);
+if(boss||hard){
+  cube(p.body,1.08,.24,.70,materials.dark,0,1.37,-.08);
+  cube(p.body,.48,.42,.18,materials.rock,0,.98,.39);
+}
+if(!fast){
+  const shield=new THREE.Group();shield.position.set(-.54,1.15,.35);p.body.add(shield);
+  const plate=cyl(shield,.44,.53,.09,boss?materials.gold:materials.wood);
+  plate.rotation.x=Math.PI/2;
+  const face=mesh(shield,new THREE.BoxGeometry(.09,.57,.055),materials.wall,0,0,.10);
+  face.castShadow=true;
+  const bossLogo=cube(shield,.16,.16,.08,materials.gold,0,0,.16);
+}
+if(fast){
+  const scarf=cone(p.body,.53,.65,materials.red,0,1.55,-.16);scarf.rotation.x=Math.PI;
+}
 if(boss){cube(p.body,.85,.16,.56,materials.gold,0,1.43,-.2);showToast('👑 მტრის კაპიტანი გამოჩნდა!')}
 const lanes=[Math.PI/2,Math.PI/3,Math.PI/5,Math.PI*3/4];
 const lane=lanes[(Math.floor(state.spawned/7)+Math.floor(state.wave/2))%lanes.length];
@@ -318,16 +427,20 @@ const hp=boss?180+state.wave*13:hard?74+state.wave*9:fast?18+state.wave*5:24+sta
 state.enemies.push({group:p.group,body:p.body,hp,maxHp:hp,speed:boss?1.7:hard?1.75:fast?rand(2.9,3.4):rand(2.0,2.45)+state.wave*.08,cd:rand(0,.5),hit:0,reward:boss?65:hard?20:fast?10:8,type:boss?'captain':hard?'armored':fast?'raider':'soldier'});
 state.spawned++;}
 function coin(x,z,amount=8){const g=new THREE.Group();const disk=cyl(g,.3,.3,.09,materials.gold,0,.55,0);disk.rotation.z=Math.PI/2;g.position.set(x,0,z);scene.add(g);state.pickups.push({group:g,time:0,amount:Math.random()<.14?amount+5:amount})}
-function hitEnemy(e,dmg){audio.play('impact',e.hp<=dmg?.54:.38);e.hp-=dmg;e.hit=.15;if(e.hp<=0){const pos=e.group.position.clone();scene.remove(e.group);state.enemies.splice(state.enemies.indexOf(e),1);state.kills++;coin(pos.x,pos.z,e.reward);for(let i=0;i<5;i++)particle(pos.x,1,pos.z,0xffd36b);if(state.kills%10===0)showToast('⚔️ '+state.kills+' მტერი დამარცხებულია!')}}
+function hitEnemy(e,dmg){audio.play('impact',e.hp<=dmg?.54:.38);
+  const impact=e.group.position;
+  for(let n=0;n<3;n++)particle(impact.x+rand(-.25,.25),rand(1.0,1.7),impact.z+rand(-.25,.25),0xffc76d);
+  e.hp-=dmg;e.hit=.18;if(e.hp<=0){const pos=e.group.position.clone();scene.remove(e.group);state.enemies.splice(state.enemies.indexOf(e),1);state.kills++;coin(pos.x,pos.z,e.reward);for(let i=0;i<5;i++)particle(pos.x,1,pos.z,0xffd36b);if(state.kills%25===0)showToast('⚔️ '+state.kills+' მტერი • შესანიშნავია!')}}
 function particle(x,y,z,color){const p=sphere(scene,.1,new THREE.MeshBasicMaterial({color,transparent:true,opacity:1}),x,y,z);p.castShadow=false;state.particles.push({mesh:p,vx:rand(-2,2),vy:rand(1,4),vz:rand(-2,2),life:.55})}
 function shoot(from,to,dmg,color=0xffdf84){
   // A physical, visible arrow rather than the former glowing round projectile.
   const arrow=new THREE.Group();arrow.position.set(from.x,from.y||1.2,from.z);
-  cyl(arrow,.035,.035,.85,materials.wood,0,0,0);
-  cone(arrow,.105,.24,materials.wall,0,.53,0);
+  cyl(arrow,.045,.045,1.10,materials.wood,0,0,0);
+  cyl(arrow,.075,.04,.1,materials.gold,0,-.53,0);
+  cone(arrow,.14,.29,materials.wall,0,.68,0);
   const feather=color===0x9df5af?materials.green:materials.yellow;
-  cube(arrow,.18,.055,.11,feather,0,-.34,0);
-  cube(arrow,.11,.055,.18,feather,0,-.34,0);
+  cube(arrow,.24,.045,.10,feather,0,-.42,0);
+  cube(arrow,.10,.045,.24,feather,0,-.42,0);
   scene.add(arrow);state.shots.push({mesh:arrow,to,dmg,speed:29,life:1.32});
   audio.play('arrow',color===0x9df5af?.27:.78);
 }
@@ -369,7 +482,7 @@ function build(kind){
   audio.play('build');showToast(kind==='wall'?'🧱 გალავნის ნაწილი აშენდა!':'🏹 მშვილდოსნის კოშკი მზადაა!');
   ui();
 }
-function upgrade(){const cost=60+(state.level-1)*35;if(state.coins<cost)return;state.coins-=cost;state.level++;state.damage+=7;state.maxHp+=18;state.hp=Math.min(state.maxHp,state.hp+35);state.maxFortHP+=25;state.fortHP=Math.min(state.maxFortHP,state.fortHP+55);hero.group.scale.setScalar(1+Math.min(state.level-1,4)*.045);audio.play('upgrade');showToast('⬆️ გმირი გაძლიერდა! დონე '+state.level);ui()}
+function upgrade(){const cost=60+(state.level-1)*35;if(state.coins<cost)return;state.coins-=cost;state.level++;state.damage+=7;state.maxHp+=18;state.hp=Math.min(state.maxHp,state.hp+35);state.maxFortHP+=25;state.fortHP=Math.min(state.maxFortHP,state.fortHP+55);hero.group.scale.setScalar(1.10+Math.min(state.level-1,4)*.045);audio.play('upgrade');showToast('⬆️ გმირი გაძლიერდა! დონე '+state.level);ui()}
 function heal(){if(state.coins<35||state.hp>=state.maxHp)return;state.coins-=35;state.hp=Math.min(state.maxHp,state.hp+30);audio.play('coin',.45);showToast('❤️ სიცოცხლე აღდგენილია');ui()}
 function dash(){if(state.dashCd>0||!state.playing)return;state.dashTime=.22;state.dashCd=3;audio.play('dash');showToast('⚡ სწრაფი მოძრაობა')}
 function beginWave(){state.waveTotal=12+state.wave*6;state.waveLeft=state.waveTotal;state.spawned=0;state.spawnCd=.7;state.waveWait=0;audio.play('wave',.52);showToast('🌊 ტალღა '+state.wave+(state.wave%4===0?' • კაპიტანის შეტევა!':' • მტრის ნაკადი მოდის!'));ui()}
@@ -377,7 +490,7 @@ function beginWave(){state.waveTotal=12+state.wave*6;state.waveLeft=state.waveTo
 function reset(){for(const name of ['enemies','builds','shots','pickups','particles']){for(const item of state[name])scene.remove(item.group||item.mesh);state[name].length=0}
 for(const slot of slots){slot.occupied=false;slot.group.visible=true}selectedSlot=null;selectedBuild=null;
 Object.assign(state,{playing:true,dead:false,coins:80,hp:100,maxHp:100,fortHP:500,maxFortHP:500,wave:1,kills:0,level:1,damage:24,attackCd:0,spawnCd:0,waveLeft:0,spawned:0,waveTotal:0,dashCd:0,dashTime:0,waveWait:0});
-hero.group.position.set(2,0,6.5);hero.group.scale.setScalar(1);facing.set(0,0,-1);$('intro').classList.add('hidden');$('over').classList.add('hidden');$('center').style.pointerEvents='none';beginWave();ui()}
+hero.group.position.set(2,0,6.5);hero.group.scale.setScalar(1.10);facing.set(0,0,-1);$('intro').classList.add('hidden');$('over').classList.add('hidden');$('center').style.pointerEvents='none';beginWave();ui()}
 function endGame(reason='hero'){if(state.dead)return;audio.play('defeat');state.dead=true;state.playing=false;$('result').textContent=(reason==='castle'?'🏰 ციხესიმაგრე დაინგრა! ':'🏹 გმირი დამარცხდა! ')+'მიაღწიე '+state.wave+'-ე ტალღამდე • დაამარცხე '+state.kills+' მტერი • ააშენე '+state.builds.length+' ნაგებობა';$('over').classList.remove('hidden');$('center').style.pointerEvents='auto'}
 function frame(now){requestAnimationFrame(frame);const dt=Math.min(.17,Math.max(0,(now-(state.lastTime||now))/1000));state.lastTime=now;
 const pos=hero.group.position;
@@ -386,23 +499,23 @@ let vx=(keys['d']||keys['arrowright']?1:0)-(keys['a']||keys['arrowleft']?1:0)+jo
 let vy=(keys['s']||keys['arrowdown']?1:0)-(keys['w']||keys['arrowup']?1:0)+joystick.y;
 let l=Math.hypot(vx,vy);if(l>1){vx/=l;vy/=l;l=1}
 const dx=(vx+vy)*.7071068,dz=(-vx+vy)*.7071068;
-if(l>.05){movement.set(dx,dz);facing.set(dx,0,dz).normalize();const speed=state.dashTime>0?14:5.4;pos.x=THREE.MathUtils.clamp(pos.x+dx*speed*dt,-43,43);pos.z=THREE.MathUtils.clamp(pos.z+dz*speed*dt,-43,43);hero.group.rotation.y=Math.atan2(facing.x,facing.z);hero.body.position.y=Math.sin(now*.013)*.075}
-else{movement.set(0,0);hero.body.position.y=Math.sin(now*.003)*.02}
+if(l>.05){movement.set(dx,dz);facing.set(dx,0,dz).normalize();const speed=state.dashTime>0?14:5.4;pos.x=THREE.MathUtils.clamp(pos.x+dx*speed*dt,-43,43);pos.z=THREE.MathUtils.clamp(pos.z+dz*speed*dt,-43,43);turnActor(hero.group,Math.atan2(facing.x,facing.z),dt,11)}
+else{movement.set(0,0)}
 state.dashTime=Math.max(0,state.dashTime-dt);state.dashCd=Math.max(0,state.dashCd-dt);
 state.attackCd-=dt;
 const target=nearest(pos,10.5);
 if(target && state.attackCd<=0){
   const aim=target.group.position.clone().sub(pos);
-  hero.group.rotation.y=Math.atan2(aim.x,aim.z);
+  turnActor(hero.group,Math.atan2(aim.x,aim.z),dt,24);
   const start=pos.clone().addScaledVector(aim.normalize(),.46);start.y=1.54;
   hero.group.updateMatrixWorld(true);
   const rig=hero.body.userData.rig;
   const bowOrigin=rig?rig.bow.localToWorld(new THREE.Vector3(.03,.06,.42)):start;
   shoot(bowOrigin,target,state.damage,0xfbe5a0);
-  state.attackCd=.39;hero.body.rotation.z=-.16;
+  state.attackCd=.43;
   if(hero.body.userData.rig){hero.body.userData.rig.draw=0;hero.body.userData.rig.shotFlash=1;}
-}else{hero.body.rotation.z*=.85}
-animateArcher(hero.body,now,!!target,dt);
+}else{}
+animateArcher(hero.body,now,!!target,dt,l>.05,state.dashTime>0);
 if(state.waveLeft>0){state.spawnCd-=dt;if(state.spawnCd<=0&&state.enemies.length<38){makeEnemy();state.waveLeft--;state.spawnCd=Math.max(.23,.44-state.wave*.018)}}
 else if(state.enemies.length===0){state.waveWait+=dt;if(state.waveWait>2.4){
   state.wave++;state.coins+=42;state.hp=Math.min(state.maxHp,state.hp+26);
@@ -423,8 +536,14 @@ for(const enemy of [...state.enemies]){
     ep.z+=dirz/Math.max(dist,.1)*enemy.speed*dt;
     enemy.group.rotation.y=Math.atan2(dirx,dirz);
   }
-  enemy.body.position.y=Math.sin(now*.01+ep.x)*.055;enemy.cd-=dt;enemy.hit=Math.max(0,enemy.hit-dt);
-  enemy.body.scale.setScalar(enemy.hit>0?1.15:1);
+  enemy.body.position.y=Math.abs(Math.sin(now*.011+ep.x))*.075;
+  moveActorLegs(enemy.body,now+ep.x*300,dist>1.25,dt,enemy.speed/2.2);
+  if(enemy.body.userData.rightArm)enemy.body.userData.rightArm.rotation.x= -.22+Math.sin(now*.013+ep.z)*.16;
+  if(enemy.body.userData.leftArm)enemy.body.userData.leftArm.rotation.x=.14-Math.sin(now*.013+ep.z)*.16;
+  enemy.cd-=dt;enemy.hit=Math.max(0,enemy.hit-dt);
+  enemy.body.scale.setScalar(enemy.hit>0?1.08:1);
+  enemy.body.rotation.z=THREE.MathUtils.lerp(enemy.body.rotation.z,enemy.hit>0?.25:0,Math.min(1,dt*16));
+  enemy.body.userData.head.rotation.y=Math.sin(now*.003+ep.x)*.08;
   if(dist<(targetObj?1.55:targetingCastle?4.15:1.25)&&enemy.cd<=0){
     enemy.cd=.98;
     if(targetObj){
@@ -435,7 +554,7 @@ for(const enemy of [...state.enemies]){
         targetObj.slot.occupied=false;targetObj.slot.group.visible=true;
         if(selectedSlot===targetObj.slot)selectedSlot=null;
         if(selectedBuild===targetObj)selectedBuild=null;
-        showToast('💥 გალავნის ნაწილი დაზიანდა — აღადგინე!');
+        showToast('🧱 გალავანი დაინგრა • აღადგინე');
       }
     }else if(targetingCastle){
       state.fortHP=Math.max(0,state.fortHP-(7+state.wave*.7));
@@ -458,7 +577,7 @@ for(const b of state.builds){
       const diff=target.group.position.clone().sub(b.group.position);
       archer.parent.rotation.y=Math.atan2(diff.x,diff.z)-b.group.rotation.y;
     }
-    animateArcher(archer,now,!!target,dt);
+    animateArcher(archer,now,!!target,dt,false,false);
   }
   if(b.cd<=0&&target){
     shoot(new THREE.Vector3(b.group.position.x,4.1,b.group.position.z),target,20+b.level*11+state.level*2,0x9df5af);
@@ -480,7 +599,7 @@ for(const item of [...state.pickups]){
 for(const item of [...state.particles]){item.life-=dt;item.mesh.position.x+=item.vx*dt;item.mesh.position.y+=item.vy*dt;item.mesh.position.z+=item.vz*dt;item.vy-=9*dt;item.mesh.material.opacity=Math.max(0,item.life/.55);if(item.life<=0){scene.remove(item.mesh);state.particles.splice(state.particles.indexOf(item),1)}}
 for(const b of state.builds){if(b.tag){
     const near=dist2(b.group.position,pos)<13;
-    b.tag.visible=near; b.tag.scale.set(selectedBuild===b?2.86:2.27,selectedBuild===b?1.07:.84,1);
+    b.tag.visible=near&&selectedBuild===b; b.tag.scale.set(2.32,.86,1);
   }}
 animateSlots(now);ui();
 }
@@ -528,7 +647,7 @@ $('wallBtn').onclick=()=>build('wall');$('towerBtn').onclick=()=>build('tower');
 camera.position.set(21,22,22);camera.lookAt(0,0,0);ui();requestAnimationFrame(frame);
 
 if(location.pathname.toLowerCase().includes('developer')){
-const panel=document.createElement('aside');panel.id='devPanel';panel.innerHTML='<div class="devtitle">🛠️ DEVELOPER • GEORGIA 0.4</div><button id="devMoney">🪙 +1000</button><button id="devGod">🛡️ უკვდავება OFF</button><button id="devSkip">⏩ შემდეგი ტალღა</button><button id="devFull">❤️ შევსება</button><button id="devWalls">🏰 ყველა ნაგებობა</button>';document.body.append(panel);
+const panel=document.createElement('aside');panel.id='devPanel';panel.innerHTML='<div class="devtitle">🛠️ DEVELOPER • GEORGIA 0.5</div><button id="devMoney">🪙 +1000</button><button id="devGod">🛡️ უკვდავება OFF</button><button id="devSkip">⏩ შემდეგი ტალღა</button><button id="devFull">❤️ შევსება</button><button id="devWalls">🏰 ყველა ნაგებობა</button>';document.body.append(panel);
 $('devMoney').onclick=()=>{state.coins+=1000;ui();showToast('🪙 +1000')};
 $('devGod').onclick=()=>{const enabled=state.maxHp<5000;if(enabled){state.maxHp=99999;state.hp=99999;}else{state.maxHp=100+(state.level-1)*18;state.hp=state.maxHp}$('devGod').textContent='🛡️ უკვდავება '+(enabled?'ON':'OFF');ui();};
 $('devSkip').onclick=()=>{if(!state.playing)return;for(const e of state.enemies)scene.remove(e.group);state.enemies.length=0;state.waveLeft=0;state.waveWait=2.5;showToast('⏩ შემდეგი ტალღა')};

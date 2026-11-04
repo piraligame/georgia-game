@@ -1,9 +1,9 @@
 ﻿{
     "name":  "georgia-game",
-    "version":  "0.4.0",
+    "version":  "0.5.0",
     "private":  true,
     "type":  "module",
-    "description":  "Georgia 3D fortress defense, archery and original game music",
+    "description":  "Georgia — mobile fortress defense with enhanced hero animation",
     "scripts":  {
                     "start":  "npx serve . -l 8080",
                     "check":  "node --check main.js"
