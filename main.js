@@ -609,9 +609,11 @@ const economyDefinitions={
  barracks:{name:'🛡️ ყაზარმა',coins:110,wood:12,interval:20,description:'საკუთარი მცველების დაქირავება'},
  market:{name:'🏺 სავაჭრო',coins:75,wood:6,interval:11,description:'მონეტების შემოსავალი'},
  forge:{name:'⚒️ სამჭედლო',coins:105,wood:12,interval:15,description:'კოშკებისა და ბალისტის გაძლიერება'},
- infirmary:{name:'💚 სამკურნალო',coins:95,wood:10,interval:12,description:'გმირისა და ჯარის მკურნალობა'}
+ infirmary:{name:'💚 სამკურნალო',coins:95,wood:10,interval:12,description:'გმირისა და ჯარის მკურნალობა'},
+ quarry:{name:'🪨 ქვის კარიერი',coins:125,wood:10,interval:14,description:'გალავნების შეკეთება + ხე'},
+ stable:{name:'🐎 საჯინიბო',coins:150,wood:16,interval:12,description:'მხედრების გახსნა და ჯარის სისწრაფე'}
 };
-const economyPlots=[],economyNames=['farm','lumber','workshop','barracks','market','forge','infirmary'];
+const economyPlots=[],economyNames=['farm','lumber','workshop','barracks','market','forge','infirmary','quarry','stable'];
 let selectedEconomyPlot=null,selectedEconomy=null,buildMode='defense';
 const economyMarkerMat=new THREE.MeshBasicMaterial({color:0xbbe2b7,transparent:true,opacity:.58,depthWrite:false});
 for(const [i,coords] of [
@@ -703,6 +705,35 @@ function makeEconomyModel(kind,level=1){
    const cross1=cube(g,.23,.85,.12,materials.green,0,1.55,1.32);
    const cross2=cube(g,.79,.23,.12,materials.green,0,1.57,1.33);
    for(const x of [-1.2,1.2])sphere(g,.45,materials.green,x,.52,1.62);
+ }else if(kind==='quarry'){
+   for(let i=0;i<10;i++){
+     const rock=mesh(g,new THREE.DodecahedronGeometry(.4+(i%4)*.11,0),
+       i%2?materials.wall:materials.rock,rand(-1.25,1.25),.38+(i%3)*.36,rand(-1,1));
+     rock.scale.set(1.2,.7,1.1);rock.rotation.y=i*.72;
+   }
+   cube(g,2.65,.23,.46,timber,0,.66,1.14);
+   const crane=cyl(g,.12,.15,2.6,timber,-.92,1.52,-.58);
+   crane.rotation.z=.03;
+   const beam=cube(g,2.0,.16,.17,timber,-.25,2.78,-.58);beam.rotation.z=-.11;
+   const hook=cyl(g,.035,.035,1.15,materials.wall,.53,2.14,-.58);
+   cone(g,.21,.30,materials.wall,.53,1.40,-.58);
+ }else if(kind==='stable'){
+   cube(g,3.25,1.54,2.62,ochre,0,.82,0);
+   for(const side of [-1,1]){
+     const roof=cube(g,2.12,.16,3.1,mat(0x875945),side*.88,2.08,0);
+     roof.rotation.z=-side*.48;
+   }
+   for(const x of [-1.06,0,1.06]){
+     cube(g,.16,1.65,.15,timber,x,.85,1.36);
+     cube(g,.91,.77,.12,timber,x,.42,1.43);
+   }
+   for(const x of [-.78,.78]){
+     const horsehead=cube(g,.46,.44,.76,mat(0x846044),x,1.48,1.24);
+     horsehead.rotation.x=-.24;
+     cone(g,.12,.24,materials.wood,x-.14,1.80,1.0);
+     cone(g,.12,.24,materials.wood,x+.14,1.80,1.0);
+   }
+   cube(g,.65,.25,.71,materials.wood,1.65,.35,.6);
  }else{
    cube(g,3.05,2.02,2.32,ochre,0,1.08,0);
    for(const side of [-1,1]){const r=cube(g,1.98,.19,2.71,roofMat,side*.86,2.47,0);r.rotation.z=-side*.55}
@@ -800,6 +831,14 @@ function tickEconomy(dt,now){
    }else if(b.kind==='infirmary'){
      state.hp=Math.min(state.maxHp,state.hp+10+b.level*8);
      for(const guard of state.guards)guard.hp=Math.min(guard.maxHp,guard.hp+13+b.level*6);
+   }else if(b.kind==='quarry'){
+     state.wood+=2+b.level*3;
+     const weak=state.builds.filter(x=>x.kind==='wall'&&x.hp<x.maxHp)
+       .sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0];
+     if(weak)weak.hp=Math.min(weak.maxHp,weak.hp+20+b.level*14);
+   }else if(b.kind==='stable'){
+     for(const guard of state.guards)
+       if(guard.role==='cavalry')guard.hp=Math.min(guard.maxHp,guard.hp+8+b.level*5);
    }
  }
 }
@@ -831,7 +870,7 @@ function changeBuildMode(mode){
   $('armyTab').classList.toggle('active',mode==='army');
  ui();
 }
-const state={playing:false,dead:false,coins:185,wood:75,meteorCd:0,effects:[],score:0,combo:0,comboTimer:0,armyLevel:1,castleLevel:1,cryCd:0,battleCryTime:0,missionStep:0,missionRewards:0,totalConstruction:0,recruited:0,missionTicker:.1,hp:130,maxHp:130,fortHP:720,maxFortHP:720,
+const state={playing:false,dead:false,coins:185,wood:75,meteorCd:0,effects:[],score:0,combo:0,comboTimer:0,armyLevel:1,armyFormation:'follow',castleLevel:1,cryCd:0,battleCryTime:0,missionStep:0,missionRewards:0,totalConstruction:0,recruited:0,missionTicker:.1,hp:130,maxHp:130,fortHP:720,maxFortHP:720,
  wave:1,kills:0,level:1,damage:35,attackCd:0,shotInterval:.38,towerBonus:0,towerSpeed:0,
  spawnCd:0,waveLeft:0,spawned:0,waveTotal:0,builds:[],enemies:[],shots:[],pickups:[],particles:[],
  villagers:[],economy:[],guards:[],enemyShots:[],hazards:[],villagerGoal:1,rescued:0,lost:0,totalRescued:0,settlementTier:0,villageIncomeTimer:15,
@@ -1138,7 +1177,7 @@ function createSnapshot(){
  return{
    version:10,created:new Date().toISOString(),
    castleLevel:state.castleLevel,armyLevel:state.armyLevel,cryCd:state.cryCd,
-   score:state.score,meteorCd:state.meteorCd,missionStep:state.missionStep,missionRewards:state.missionRewards,
+   score:state.score,armyFormation:state.armyFormation,meteorCd:state.meteorCd,missionStep:state.missionStep,missionRewards:state.missionRewards,
    totalConstruction:state.totalConstruction,recruited:state.recruited,
    wave:state.wave,kills:state.kills,coins:state.coins,wood:state.wood,
    hp:state.hp,maxHp:state.maxHp,fortHP:state.fortHP,maxFortHP:state.maxFortHP,
@@ -1200,7 +1239,7 @@ function restoreSnapshot(){
     if(economyDefinitions[pref])plot.preferredKind=pref;
   }
  }
- const maxGuards=Math.min(7,snap.guards.length);
+ const maxGuards=Math.min(9,snap.guards.length);
  for(let i=0;i<maxGuards;i++){
    const role=unitDefinitions[snap.guards[i].role]?snap.guards[i].role:'sword';
    if(!recruitGuard(role,true))break;
@@ -1215,6 +1254,7 @@ function restoreSnapshot(){
    wave:Math.max(1,Math.min(250,snap.wave)),kills:Math.max(0,snap.kills||0),
    score:Math.max(0,snap.score||0),
    armyLevel:Math.max(1,Math.min(5,snap.armyLevel||1)),
+   armyFormation:formationNames[snap.armyFormation]?snap.armyFormation:'follow',
    castleLevel:Math.max(1,Math.min(5,snap.castleLevel||1)),
    cryCd:Math.max(0,snap.cryCd||0),meteorCd:Math.max(0,snap.meteorCd||0),battleCryTime:0,
    missionStep:Math.max(0,snap.missionStep||0),
@@ -1248,6 +1288,7 @@ function restoreSnapshot(){
 }
 function openPause(){
  if(!state.playing||state.dead||state.betweenWaves)return;
+ $('siteDock').classList.add('hidden');$('troopDock').classList.add('hidden');
  state.paused=true;
  $('pauseSummary').textContent='ტალღა '+state.wave+' • 🪙 '+state.coins+' • 🌲 '+state.wood+
   ' • 🛡️ '+state.guards.length+' მცველი • 🏰 '+Math.ceil(state.fortHP)+' HP';
@@ -1255,7 +1296,7 @@ function openPause(){
  restartArmed=false;$('restartBtn').textContent='↻ თავიდან დაწყება';
 }
 function closePause(){
- state.paused=false;$('pauseOverlay').classList.add('hidden');
+ state.paused=false;contextUiTimer=0;$('pauseOverlay').classList.add('hidden');
  for(const key in keys)keys[key]=false;
 }
 // Narikala's primary construction loop: physically walk ON a site and deposit coins.
@@ -1341,6 +1382,9 @@ function tickDepositVisuals(dt){
  }
 }
 function resetWorldPayment(){
+ siteChoicesOpen=false;troopMenuOpen=false;contextUiTimer=0;siteRecentlyBuilt=0;
+ $('siteDock').classList.add('hidden');$('troopDock').classList.add('hidden');
+ $('siteChoices').classList.add('hidden');$('troopChoices').classList.add('hidden');
  paymentLockKey='';paymentLockPos=null;worldTargetKey='';worldPaymentTimer=0;worldContextItem=null;
  worldBillboard.visible=false;worldBillboardText='';depositSpotRing.visible=false;
  for(const fx of [...depositedCoins]){scene.remove(fx.group);fx.group.traverse(n=>{if(n.geometry)n.geometry.dispose()})};depositedCoins.length=0;
@@ -1348,7 +1392,18 @@ function resetWorldPayment(){
  for(const slot of slots)slot.deposit=0;
  for(const plot of economyPlots){plot.deposit=0;plot.preferredKind=economyNames[plot.index%economyNames.length]}
 }
+// Alpha 1.02: Build ONLY after a deliberate tap. Never auto-spend resources on approach.
+let siteChoicesOpen=false,troopMenuOpen=false,contextUiTimer=0,siteRecentlyBuilt=0;
+const buildChoiceKeys=[...economyNames];
+const siteChoiceArea=$('siteChoices');
+function canActNow(){return state.playing&&!state.dead&&!state.paused&&!state.betweenWaves}
+function siteDeposit(item){return item.slot?(item.slot.deposit||0):(item.plot.deposit||0)}
+function depositCostRemaining(item){return Math.max(0,item.cost.coins-siteDeposit(item))}
+function affordableSite(item){
+ return state.coins>=depositCostRemaining(item)&&state.wood>=item.cost.wood
+}
 function completeSite(item){
+ if(!item||!canActNow())return false;
  if(item.slot){
    selectedSlot=item.slot;selectedBuild=item.building||null;
    if(item.building)upgradeStructure(true);
@@ -1358,73 +1413,209 @@ function completeSite(item){
    if(item.building)upgradeEconomy(true);
    else buildEconomy(item.kind,item.plot,false,true);
  }
- item.slot?item.slot.deposit=0:item.plot.deposit=0;
- paymentLockKey=item.id;paymentLockPos=item.pos.clone();
- worldPaymentTimer=.20;
+ if(item.slot)item.slot.deposit=0;else item.plot.deposit=0;
+ paymentLockKey='';paymentLockPos=null;siteRecentlyBuilt=.22;
+ worldBillboardText='';worldPaymentTimer=0;
  saveCheckpoint(true);
  showToast('🏗️ '+item.title+' • დონე '+item.stage+' დასრულდა!');
+ return true;
 }
-function updateWorldConstruction(dt){
- if(paymentLockPos&&dist2(hero.group.position,paymentLockPos)>3.30){
-   paymentLockKey='';paymentLockPos=null;
+function repairFortress(){
+ if(!canActNow()||!nearCastle())return false;
+ const missing=state.maxFortHP-state.fortHP;
+ if(missing<10){showToast('🏰 ნარიყალას გამძლეობა სავსეა');return false}
+ const cost=Math.min(45,Math.max(18,Math.ceil(missing/15)));
+ if(state.coins<cost||state.wood<3){showToast('🔧 საჭიროა 🪙 '+cost+' 🌲3');return false}
+ state.coins-=cost;state.wood-=3;
+ state.fortHP=Math.min(state.maxFortHP,state.fortHP+Math.max(95,state.maxFortHP*.15));
+ for(let i=0;i<14;i++)particle(castle.position.x+rand(-2,2),rand(1,4),castle.position.z+rand(-2,2),0x9fe8c6);
+ audio.play('upgrade',.65);saveCheckpoint(true);showToast('🛠️ ნარიყალა შეკეთებულია');return true;
+}
+$('fortRepairBtn').onclick=()=>{repairFortress();updateWorldConstruction(0)};
+function nearCastle(){return dist2(hero.group.position,castle.position)<2.8}
+function buildAtCurrentSite(){
+ if(!canActNow()||siteRecentlyBuilt>0)return false;
+ const item=identifyWorldItem();
+ if(!item){if(nearCastle()){upgradeCastle();updateWorldConstruction(0);return true}showToast('🏗️ მიუახლოვდი სამშენებლო ადგილს');return false}
+ const coins=depositCostRemaining(item),wood=item.cost.wood;
+ if(state.coins<coins||state.wood<wood){
+   showToast('საჭიროა 🪙 '+coins+' და 🌲 '+wood);
+   return false;
  }
+ state.coins-=coins;
+ for(let i=0;i<Math.min(5,Math.ceil(coins/12));i++)addCoinDepositFx(item.pos,coins);
+ const complete=completeSite(item);
+ if(!complete){state.coins+=coins;return false}
+ audio.play('build',.9);
+ updateWorldConstruction(0);
+ return true;
+}
+function selectSiteBuilding(kind){
+ const item=identifyWorldItem();
+ if(!item||!item.plot||item.building||!economyDefinitions[kind])return;
+ const plot=item.plot;
+ if(plot.deposit){state.coins+=plot.deposit;plot.deposit=0}
+ plot.preferredKind=kind;
+ siteChoicesOpen=false;
+ worldBillboardText='';
+ saveCheckpoint(true);
+ updateWorldConstruction(0);
+ showToast(economyDefinitions[kind].name+' არჩეულია • დააჭირე „აშენება“');
+}
+function createSiteChoiceButtons(){
+ siteChoiceArea.replaceChildren();
+ for(const kind of buildChoiceKeys){
+   const def=economyDefinitions[kind];
+   const btn=document.createElement('button');
+   btn.type='button';btn.dataset.buildKind=kind;
+   btn.innerHTML='<b>'+def.name+'</b><span class="cost">🪙 '+def.coins+' 🌲 '+def.wood+' • '+def.description+'</span>';
+   btn.onclick=()=>selectSiteBuilding(kind);
+   siteChoiceArea.append(btn);
+ }
+}
+createSiteChoiceButtons();
+$('siteChooseBtn').onclick=()=>{
+ if(!identifyWorldItem()?.plot)return;
+ siteChoicesOpen=!siteChoicesOpen;
+ $('siteChoices').classList.toggle('hidden',!siteChoicesOpen);
+};
+$('siteBuildBtn').onclick=buildAtCurrentSite;
+function closestBarracks(){
+ return state.economy.find(b=>b.kind==='barracks'&&dist2(hero.group.position,b.group.position)<6.0)||null;
+}
+$('troopToggle').onclick=()=>{
+ if(!closestBarracks())return;
+ troopMenuOpen=!troopMenuOpen;
+ $('troopChoices').classList.toggle('hidden',!troopMenuOpen);
+ updateWorldConstruction(0);
+};
+for(const [id,kind] of [
+ ['hireSword','sword'],['hireArcher','archer'],['hireHealer','healer'],
+ ['hireSpear','spear'],['hireCavalry','cavalry']
+]){
+ $(id).onclick=()=>{
+   if(!closestBarracks())return;
+   recruitGuard(kind);
+   updateWorldConstruction(0);
+ };
+}
+$('trainTroops').onclick=()=>{
+ if(!closestBarracks())return;
+ trainArmy();
+ updateWorldConstruction(0);
+};
+function updateWorldConstruction(dt){
+ siteRecentlyBuilt=Math.max(0,siteRecentlyBuilt-dt);
+ // Keep the GL scene smooth on phones; contextual DOM only needs ~8 FPS.
+ contextUiTimer-=dt;
+ if(dt>0&&contextUiTimer>0)return;
+ contextUiTimer=.12;
  const item=identifyWorldItem();
  worldContextItem=item;
- if(!item){
-   $('worldBuildInfo').classList.add('hidden');worldBillboard.visible=false;worldBillboardText='';depositSpotRing.visible=false;
-   worldTargetKey='';worldPaymentTimer=0;
+ const nearBarracks=Boolean(closestBarracks());
+ if(!nearBarracks)troopMenuOpen=false;
+ const troopDock=$('troopDock'),siteDock=$('siteDock');
+ troopDock.classList.toggle('hidden',!nearBarracks||!state.playing||state.dead||state.paused||state.betweenWaves);
+ $('troopChoices').classList.toggle('hidden',!troopMenuOpen||!nearBarracks);
+ $('troopCount').textContent=state.guards.length+'/9';
+ const castleContext=!item&&nearCastle();
+ if((!item&&!castleContext)||!canActNow()){
+   siteDock.classList.add('hidden');
+   worldBillboard.visible=false;
+   depositSpotRing.visible=false;
+   worldBillboardText='';
+   if(!item)siteChoicesOpen=false;
+ }else if(castleContext){
+   siteDock.classList.toggle('hidden',troopMenuOpen&&nearBarracks);
+   siteDock.classList.toggle('has-troops',nearBarracks);
+   $('siteTitle').textContent='🏰 ნარიყალას ციხე';
+   $('siteLevel').textContent='ციხის დონე '+state.castleLevel+'/5';
+   $('siteHint').textContent='❤️ '+Math.ceil(state.fortHP)+' / '+state.maxFortHP+' • ციხის გაძლიერება';
+   const price=castleUpgradeCost();
+   $('siteBuildBtn').textContent=state.castleLevel>=5?'⭐ მაქსიმუმი':'⬆️ ციხის გაუმჯობესება • 🪙'+price.coins+' 🌲'+price.wood;
+   $('siteBuildBtn').disabled=state.castleLevel>=5||state.coins<price.coins||state.wood<price.wood;
+   $('siteChooseBtn').classList.add('hidden');$('siteChoices').classList.add('hidden');
+   $('fortRepairBtn').classList.toggle('hidden',state.fortHP>=state.maxFortHP-10);
+   $('fortRepairBtn').textContent='🛠️ შეკეთება • 🪙'+Math.min(45,Math.max(18,Math.ceil((state.maxFortHP-state.fortHP)/15)))+' 🌲3';
+   $('siteFeedback').textContent=state.castleLevel>=5?'ციხე მაქსიმალურ დონეზეა':'დაიცავი ციხე და განავითარე';
+   depositSpotRing.visible=false;worldBillboard.visible=false;
  }else{
-   const deposited=item.slot?(item.slot.deposit||0):(item.plot.deposit||0);
-   const full=item.cost.coins;
-   const locked=paymentLockKey===item.id;
-   const woodOk=state.wood>=item.cost.wood;
-   $('worldBuildInfo').classList.remove('hidden');
+   $('fortRepairBtn').classList.add('hidden');
+   siteDock.classList.toggle('hidden',troopMenuOpen&&nearBarracks);
+   siteDock.classList.toggle('has-troops',nearBarracks);
    depositSpotRing.visible=true;depositSpotRing.position.set(item.pos.x,0,item.pos.z);
-   $('worldBuildTitle').textContent=item.title+' • LV '+item.stage+'/'+item.maxStage;
-   $('worldBuildBar').style.width=(deposited/full*100).toFixed(1)+'%';
-   $('worldBuildCost').textContent=locked?'✅ დასრულდა • მოშორდი და დაბრუნდი':
-     !woodOk?'🌲 საჭიროა '+item.cost.wood+' ხე':
-       '🪙 '+deposited+'/'+full+' • ადგილზე იდექი';
-   setWorldBillboard(item.title+' 🪙 '+deposited+'/'+full,item.pos,
-       item.slot?(item.kind==='wall'?5.15:item.kind==='tower'?5.3:item.kind==='ballista'?3.1:1.45):4.4);
-   if(!locked&&woodOk){
-     worldPaymentTimer-=dt;
-     if(worldPaymentTimer<=0&&state.coins>0){
-       worldPaymentTimer=.14;
-       const pay=Math.min(16,full-deposited,state.coins);
-       state.coins-=pay;
-       addCoinDepositFx(item.pos,pay);
-       if(item.slot)item.slot.deposit=deposited+pay;else item.plot.deposit=deposited+pay;
-       if((item.slot?item.slot.deposit:item.plot.deposit)>=full){
-          completeSite(item);worldBillboardText='';worldContextItem=null;
-       }else if(Math.random()<.24)audio.play('coin',.08);
-     }
-   }
+   const wood=item.cost.wood;
+   const amount=depositCostRemaining(item);
+   $('siteTitle').textContent=item.title;
+   $('siteLevel').textContent='დონე '+item.stage+' / '+item.maxStage;
+   $('siteHint').textContent=item.building?'არსებული ნაგებობის განვითარება':'სამშენებლო ადგილი • აირჩიე რა აშენდეს';
+   $('siteFeedback').textContent=state.coins<amount?
+      '🪙 კიდევ საჭიროა '+(amount-state.coins)+' მონეტა':
+      state.wood<wood?'🌲 კიდევ საჭიროა '+(wood-state.wood)+' ხე':'✅ საკმარისი რესურსია';
+   $('siteBuildBtn').textContent=(item.building?'⬆️ გააძლიერე':'🏗️ აშენება')+
+       ' • 🪙'+amount+(wood?' 🌲'+wood:'');
+   $('siteBuildBtn').disabled=!affordableSite(item)||siteRecentlyBuilt>0;
+   $('siteChooseBtn').classList.toggle('hidden',!item.plot||Boolean(item.building));
+   $('siteChooseBtn').textContent='🏘️ '+(item.plot&&!item.building?'შეცვალე: '+economyDefinitions[item.kind].name:'შენობა');
+   $('siteChoices').classList.toggle('hidden',!siteChoicesOpen||!item.plot||Boolean(item.building));
+   if(siteChoicesOpen)for(const btn of siteChoiceArea.children)
+     btn.classList.toggle('selected',btn.dataset.buildKind===item.kind);
+   // Show a tiny price marker only when the player is within the site.
+   setWorldBillboard(item.title+' 🪙'+amount,item.pos,
+     item.slot?(item.kind==='wall'?5.15:item.kind==='tower'?5.3:item.kind==='ballista'?3.1:1.45):4.4);
  }
- const barracks=state.economy.find(b=>b.kind==='barracks'&&dist2(b.group.position,hero.group.position)<5);
- const context=$('contextActions');
- const showingPlot=item?.plot&&!item.building&&paymentLockKey!==item.id;
- const canRecruit=Boolean(barracks);
- const canHero=state.coins>=60+(state.level-1)*35;
- context.classList.toggle('hidden',!showingPlot&&!canRecruit&&!canHero);
- $('cycleBuildingBtn').style.display=showingPlot?'block':'none';
- $('recruitNearbyBtn').style.display=canRecruit?'block':'none';
- $('upgradeHeroQuick').style.display=canHero?'block':'none';
- if(showingPlot)$('cycleBuildingBtn').textContent='🔄 '+economyDefinitions[item.plot.preferredKind].name;
+ $('worldBuildInfo').classList.add('hidden');
+ $('contextActions').classList.add('hidden');
+ if(troopMenuOpen&&nearBarracks){
+   const barracks=closestBarracks();
+   const unlockedLv=barracks?.level||1;
+   for(const [id,role] of [
+    ['hireSword','sword'],['hireArcher','archer'],['hireHealer','healer'],
+    ['hireSpear','spear'],['hireCavalry','cavalry']
+   ]){
+     const def=unitDefinitions[role];
+     const unlockOk=role!=='spear'||unlockedLv>=2;
+     const cavalryOk=role!=='cavalry'||(unlockedLv>=3&&state.economy.some(x=>x.kind==='stable'));
+     const btn=$(id);
+     btn.innerHTML='<b>'+def.name+'</b><span class="cost">🪙'+def.coins+' 🌲'+def.wood+
+        (!unlockOk?' • ყაზარმა LV2':!cavalryOk?' • ყაზარმა LV3 + საჯინიბო':'')+'</span>';
+     btn.disabled=!unlockOk||!cavalryOk||state.guards.length>=9||
+       state.coins<def.coins||state.wood<def.wood;
+   }
+   const cost=armyUpgradeCost();
+   $('trainTroops').innerHTML='<b>⭐ გაწვრთენი ჯარი LV'+state.armyLevel+'/5</b>'+
+      '<span class="cost">🪙'+cost.coins+' 🌲'+cost.wood+'</span>';
+   $('trainTroops').disabled=state.armyLevel>=5||state.coins<cost.coins||state.wood<cost.wood;
+   $('troopDescription').textContent='🛡️ საკუთარი ჯარი • '+state.guards.length+'/9 • მონიშნე მეომარი';
+   $('formationBtn').textContent='🎖️ ბრძანება: '+formationNames[state.armyFormation||'follow'];
+ }
 }
+// Kept for backwards-compatible keyboard/controller mappings. The primary
+// build UX is explicit single-tap and the named selection list, not blind cycling.
 function cycleWorldBuilding(){
- const item=worldContextItem;if(!item?.plot||item.plot.occupied)return;
- const names=economyNames,ix=names.indexOf(item.plot.preferredKind);
- item.plot.preferredKind=names[(ix+1)%names.length];
- item.plot.deposit=0;worldBillboardText='';worldPaymentTimer=.18;
- showToast('🏘️ '+economyDefinitions[item.plot.preferredKind].name+' აირჩიე');
+ const item=identifyWorldItem();
+ if(item?.plot&&!item.building){
+   const ix=economyNames.indexOf(item.plot.preferredKind);
+   selectSiteBuilding(economyNames[(ix+1)%economyNames.length]);
+ }
 }
 // Recruited allied guards: real actors that patrol, escort and defend the kingdom.
 function barracksCount(){return state.economy.filter(b=>b.kind==='barracks').length}
+const formationNames={follow:'🚶 გამომყევი',defend:'🏰 დაიცავი ნარიყალა',attack:'⚔️ შეუტიე'};
+const formationSequence=['follow','defend','attack'];
+function cycleFormation(){
+ if(!canActNow())return;
+ const index=formationSequence.indexOf(state.armyFormation||'follow');
+ state.armyFormation=formationSequence[(index+1)%formationSequence.length];
+ showToast('🛡️ ჯარის ბრძანება: '+formationNames[state.armyFormation]);saveCheckpoint(true);
+}
+$('formationBtn').onclick=cycleFormation;
 const unitDefinitions={
  sword:{name:'🛡️ ხმლიანი',coins:35,wood:3,hp:88,damage:21,speed:3.35},
  archer:{name:'🏹 მშვილდოსანი',coins:55,wood:5,hp:64,damage:19,speed:3.15},
- healer:{name:'💚 მკურნალი',coins:70,wood:7,hp:70,damage:0,speed:3.0}
+ healer:{name:'💚 მკურნალი',coins:70,wood:7,hp:70,damage:0,speed:3.0},
+ spear:{name:'🔱 შუბოსანი',coins:85,wood:8,hp:106,damage:32,speed:3.1},
+ cavalry:{name:'🐎 ქართველი მხედარი',coins:140,wood:14,hp:150,damage:44,speed:4.65}
 };
 function armyUpgradeCost(){return{coins:60+state.armyLevel*65,wood:4+state.armyLevel*5}}
 function trainArmy(){
@@ -1438,17 +1629,24 @@ function trainArmy(){
    g.maxHp+=18;g.hp=Math.min(g.maxHp,g.hp+30);g.damage+=5;
  }
  for(let i=0;i<14;i++)particle(hero.group.position.x,rand(.4,2),hero.group.position.z,0x89eac2);
- audio.play('upgrade');showToast('🛡️ მოკავშირეების წვრთნა — დონე '+state.armyLevel);ui();
+ audio.play('upgrade');showToast('🛡️ მოკავშირეების წვრთნა — დონე '+state.armyLevel);ui();saveCheckpoint(true);
 }
 function recruitGuard(role='sword',restoring=false){
  if(typeof role==='boolean'){restoring=role;role='sword'}
  if(!unitDefinitions[role]||!state.playing||state.dead||state.betweenWaves||state.paused)return false;
- if(!restoring&&barracksCount()===0){showToast('🛡️ ჯერ ყაზარმა ააშენე');return false}
- if(state.guards.length>=7){showToast('🛡️ მოკავშირეების მაქსიმუმია 7');return false}
+ if(!restoring&&!closestBarracks()){showToast('🛡️ დაქირავებისთვის მიუახლოვდი ყაზარმას');return false}
+ if(!restoring&&role==='spear'&&(closestBarracks()?.level||0)<2){
+   showToast('🔱 ჯერ ყაზარმა LV2 გააძლიერე');return false;
+ }
+ if(!restoring&&role==='cavalry'&&!((closestBarracks()?.level||0)>=3
+    &&state.economy.some(b=>b.kind==='stable'))){
+   showToast('🐎 საჭიროა ყაზარმა LV3 და საჯინიბო');return false;
+ }
+ if(state.guards.length>=9){showToast('🛡️ მოკავშირეების მაქსიმუმია 9');return false}
  const def=unitDefinitions[role];
  if(!restoring&&(state.coins<def.coins||state.wood<def.wood)){
    showToast('საჭიროა 🪙 '+def.coins+' და 🌲 '+def.wood);return false}
- const soldier=person(role==='sword'?0x39788a:role==='archer'?0x3d805b:0x7c89a4,false);
+ const soldier=person(role==='sword'?0x39788a:role==='archer'?0x3d805b:role==='spear'?0x527b66:role==='cavalry'?0x8b5d4c:0x7c89a4,false);
  const group=soldier.group,body=soldier.body,arm=body.userData.rightArm;
  if(arm){for(const child of arm.children.slice(1))arm.remove(child)}
  if(role==='sword'){
@@ -1468,6 +1666,22 @@ function recruitGuard(role='sword',restoring=false){
    mesh(bow,new THREE.TubeGeometry(
      new THREE.LineCurve3(new THREE.Vector3(.02,-.76,0),new THREE.Vector3(.02,.76,0)),1,.014,4,false),materials.gold);
    const quiver=cyl(body,.19,.23,.76,materials.wood,-.40,1.12,-.36);quiver.rotation.z=-.27;
+ }else if(role==='spear'){
+   const spear=cyl(arm,.065,.065,2.0,materials.wood,.23,.03,.35);
+   spear.rotation.z=.15;
+   cone(arm,.17,.49,materials.wall,.23,1.18,.35);
+   const shield=new THREE.Group();body.add(shield);
+   shield.position.set(-.55,1.05,.34);
+   const plate=cyl(shield,.44,.46,.12,mat(0x3b6a74));plate.rotation.x=Math.PI/2;
+   cube(shield,.13,.48,.12,materials.gold,0,0,.11);
+   cube(shield,.43,.11,.12,materials.gold,0,0,.13);
+ }else if(role==='cavalry'){
+   const sword=cube(arm,.17,1.05,.15,materials.wall,.19,-.16,.34);sword.rotation.z=-.20;
+   cube(arm,.47,.13,.16,materials.gold,.19,-.78,.35);
+   const horse=createHorse(group);
+   horse.scale.setScalar(.96);
+   group.userData.alliedHorse=horse;
+   const shield=cyl(body,.36,.39,.12,mat(0x4f86a2),-.59,1.21,.36);shield.rotation.x=Math.PI/2;
  }else{
    const staff=cyl(arm,.075,.075,1.54,materials.wood,.17,.16,.25);staff.rotation.z=-.10;
    sphere(arm,.20,mat(0x88f0c9,.3),.22,.96,.25);
@@ -1480,7 +1694,7 @@ function recruitGuard(role='sword',restoring=false){
  const base=state.economy.find(b=>b.kind==='barracks')?.group.position||castle.position;
  const index=state.guards.length;
  group.position.set(base.x+(index%3-1)*.65,0,base.z+2+(index%2)*.80);
- const bar=new THREE.Group();group.add(bar);bar.position.y=2.45;
+ const bar=new THREE.Group();group.add(bar);bar.position.y=role==='cavalry'?3.70:2.45;
  cube(bar,.95,.11,.09,materials.dark);
  const green=cube(bar,.94,.095,.105,materials.green,-.01,0,.015);
  scene.add(group);
@@ -1490,7 +1704,7 @@ function recruitGuard(role='sword',restoring=false){
  state.guards.push(guard);
  if(!restoring){
    state.coins-=def.coins;state.wood-=def.wood;audio.play('build',.7);
-   showToast(def.name+' შემოგიერთდა!');state.recruited++;
+   showToast(def.name+' შემოგიერთდა!');state.recruited++;saveCheckpoint(true);
  }
  ui();return true;
 }
@@ -1509,13 +1723,18 @@ function damageGuard(g,amount){
 function updateGuards(time,dt){
  for(const [i,g] of [...state.guards].entries()){
    const loc=g.group.position;g.cd-=dt;
-   const isHealer=g.role==='healer',isArcher=g.role==='archer';
-   const enemy=isHealer?null:nearest(loc,isArcher?12.2:8.7);
+   const isHealer=g.role==='healer',isArcher=g.role==='archer',isSpear=g.role==='spear',isCavalry=g.role==='cavalry';
+   const mode=state.armyFormation||'follow';
+   const defendTarget=mode==='defend'?nearest(castle.position,17):null;
+   const enemy=isHealer?null:
+     mode==='defend'?(defendTarget&&dist2(loc,defendTarget.group.position)<17?defendTarget:null):
+     nearest(loc,mode==='attack'?17:isArcher?12.2:8.7);
    let target=null,stop=1.3;
-   if(enemy){target=enemy.group.position;stop=isArcher?7.1:1.35}
+   if(enemy){target=enemy.group.position;stop=isArcher?7.1:isSpear?2.12:1.35}
    else{
-     const offset=i*2.399,anchor=hero.group.position;
-     target=new THREE.Vector3(anchor.x+Math.cos(offset)*2.5,0,anchor.z+Math.sin(offset)*2.5);
+     const offset=i*2.399,anchor=mode==='defend'?castle.position:hero.group.position;
+     const radius=mode==='defend'?4.7:mode==='attack'?3.5:2.5;
+     target=new THREE.Vector3(anchor.x+Math.cos(offset)*radius,0,anchor.z+Math.sin(offset)*radius);
      stop=.40;
    }
    const dx=target.x-loc.x,dz=target.z-loc.z,dist=Math.hypot(dx,dz);
@@ -1528,8 +1747,10 @@ function updateGuards(time,dt){
      loc.z-=dz/Math.max(.01,dist)*dt*g.speed*.55;
    }
    if(dist>.15)turnActor(g.group,Math.atan2(dx,dz),dt,12);
-   moveActorLegs(g.body,time+i*197,dist>stop,dt,g.speed/2.6);
-   g.body.position.y=Math.abs(Math.sin(time*.012+i))*(dist>stop?.055:.016);
+   moveActorLegs(g.body,time+i*197,!isCavalry&&dist>stop,dt,g.speed/2.6);
+   g.body.position.y=(isCavalry?1.17:0)+Math.abs(Math.sin(time*.012+i))*(dist>stop?.055:.016);
+   if(isCavalry&&g.group.userData.alliedHorse)
+     g.group.userData.alliedHorse.position.y=Math.abs(Math.sin(time*.014+i))*.075;
    if(isHealer){
      g.healCd-=dt;
      g.body.userData.rightArm.rotation.x=-.40+Math.sin(time*.004+i)*.15;
@@ -1546,13 +1767,15 @@ function updateGuards(time,dt){
          for(let k=0;k<6;k++)particle(hero.group.position.x,rand(.4,1.9),hero.group.position.z,0xa5f1d0);
        }
      }
-   }else if(enemy&&dist<(isArcher?12.2:1.76)&&g.cd<=0&&state.enemies.includes(enemy)){
-     g.cd=isArcher?Math.max(.49,1.05-state.armyLevel*.09):Math.max(.48,.76-state.armyLevel*.035);
+   }else if(enemy&&dist<(isArcher?12.2:isSpear?2.5:isCavalry?2.05:1.76)&&g.cd<=0&&state.enemies.includes(enemy)){
+     g.cd=isArcher?Math.max(.49,1.05-state.armyLevel*.09):isSpear?.80:isCavalry?.83:Math.max(.48,.76-state.armyLevel*.035);
      g.body.userData.rightArm.rotation.x=-1.2;
      if(isArcher){
        shoot(new THREE.Vector3(loc.x,1.72,loc.z),enemy,g.damage+(state.battleCryTime>0?8:0),0x9df5af);
      }else{
-       hitEnemy(enemy,g.damage+(state.battleCryTime>0?8:0));
+       const antiHorse=isSpear&&(enemy.type==='cavalry'||enemy.type==='ram')?1.85:1;
+       const charge=isCavalry&&(enemy.type==='armored'||enemy.type==='captain')?1.50:1;
+       hitEnemy(enemy,Math.round((g.damage+(state.battleCryTime>0?8:0))*antiHorse*charge));
        audio.play('impact',.23);
      }
    }else{
@@ -1730,7 +1953,7 @@ function upgradeCastle(){
  for(const b of state.builds){b.maxHp+=60;b.hp=Math.min(b.maxHp,b.hp+70)}
  renderCastleLevel();
  for(let i=0;i<24;i++)particle(rand(-2.8,2.8),rand(.5,5.2),rand(-2.5,2.5),0xffd77a);
- audio.play('upgrade');showToast('🏰 ციხის დონე '+state.castleLevel+' / 5!');ui();
+ audio.play('upgrade');showToast('🏰 ციხის დონე '+state.castleLevel+' / 5!');ui();saveCheckpoint(true);
 }
 // War cry buffs the allied army and temporarily staggers nearby attackers.
 function battleCry(){
@@ -1851,7 +2074,7 @@ function ui(){
     flash.classList.remove('hidden');
     flash.textContent='⚔️ ×'+state.combo+' COMBO • +ქულები';
   }else flash.classList.add('hidden');
-  $('wood').textContent=state.wood;$('guardCount').textContent=state.guards.length+'/7';
+  $('wood').textContent=state.wood;$('guardCount').textContent=state.guards.length+'/9';
   $('healthtext').textContent=Math.ceil(state.hp)+' / '+state.maxHp;
   $('healthbar').style.width=Math.max(0,state.hp/state.maxHp*100)+'%';
   $('fortressHP').textContent=Math.ceil(state.fortHP)+' / '+state.maxFortHP;
@@ -1888,13 +2111,13 @@ function ui(){
   }
   for(const [id,role] of [['recruitBtn','sword'],['archerRecruitBtn','archer'],['medicRecruitBtn','healer']]){
     const cost=unitDefinitions[role];
-    $(id).disabled=barracksCount()===0||state.guards.length>=7||state.coins<cost.coins||state.wood<cost.wood;
+    $(id).disabled=barracksCount()===0||state.guards.length>=9||state.coins<cost.coins||state.wood<cost.wood;
   }
   const armyCost=armyUpgradeCost();
   $('armyUpgradeCost').textContent=state.armyLevel>=5?'MAX LV5':'🪙'+armyCost.coins+' 🌲'+armyCost.wood;
   $('armyUpgradeBtn').disabled=barracksCount()===0||state.armyLevel>=5||
     state.coins<armyCost.coins||state.wood<armyCost.wood;
-  $('guardCount').textContent=state.guards.length+'/7';
+  $('guardCount').textContent=state.guards.length+'/9';
   const castleCost=castleUpgradeCost();
   $('castleLevel').textContent=state.castleLevel+'/5';
   $('castleUpgradeCost').textContent=state.castleLevel>=5?'MAX':'🪙 '+castleCost.coins+' 🌲 '+castleCost.wood;
@@ -1902,7 +2125,7 @@ function ui(){
   $('cryBtn').disabled=state.cryCd>0||state.betweenWaves||state.paused;
   $('cryCd').textContent=state.cryCd>0?Math.ceil(state.cryCd)+'წ':'მზადაა';
   if(buildMode==='army'){
-    $('buildProgress').textContent='🛡️ '+state.guards.length+'/7';
+    $('buildProgress').textContent='🛡️ '+state.guards.length+'/9';
     $('spotHint').textContent='🛡️ ყაზარმა • 3 ტიპის ჯარი • LV '+state.armyLevel+'/5';
   }
   if(buildMode==='village'){
@@ -2175,7 +2398,7 @@ resetWorldPayment();
 for(const obj of settlementObjects)scene.remove(obj);settlementObjects.length=0;resetResourceNodes();
 selectedSlot=null;selectedBuild=null;selectedEconomy=null;selectedEconomyPlot=null;
   $('rewardOverlay').classList.add('hidden');$('pauseOverlay').classList.add('hidden');changeBuildMode('defense');
-Object.assign(state,{playing:true,dead:false,coins:185,wood:75,meteorCd:0,score:0,combo:0,comboTimer:0,armyLevel:1,castleLevel:1,cryCd:0,battleCryTime:0,missionStep:0,missionRewards:0,totalConstruction:0,recruited:0,missionTicker:.1,hp:130,maxHp:130,fortHP:720,maxFortHP:720,
+Object.assign(state,{playing:true,dead:false,coins:185,wood:75,meteorCd:0,score:0,combo:0,comboTimer:0,armyLevel:1,armyFormation:'follow',castleLevel:1,cryCd:0,battleCryTime:0,missionStep:0,missionRewards:0,totalConstruction:0,recruited:0,missionTicker:.1,hp:130,maxHp:130,fortHP:720,maxFortHP:720,
  wave:1,kills:0,level:1,damage:35,attackCd:0,shotInterval:.38,towerBonus:0,towerSpeed:0,
  spawnCd:0,waveLeft:0,spawned:0,waveTotal:0,dashCd:0,dashTime:0,volleyCd:0,
  villagerGoal:1,rescued:0,lost:0,totalRescued:0,settlementTier:0,villageIncomeTimer:15,betweenWaves:false,paused:false,waveEvent:'normal',miniTimer:0,uiCd:0,waveWait:0});

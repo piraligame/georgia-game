@@ -1,9 +1,9 @@
 {
   "name": "georgia-game",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": true,
   "type": "module",
-  "description": "GEORGIA Narikala Alpha 1.01: clean side HUD, compact developer drawer and raised touch joystick",
+  "description": "GEORGIA Narikala Alpha 1.02 — one-tap contextual building, 9 economic structures, five allied unit classes, tactical orders and fortress repair",
   "scripts": {
     "start": "npx serve . -l 8080",
     "check": "node --check main.js"
