@@ -194,3 +194,66 @@ body:has(#villageBuilds:not(.hidden)) .structure-panel{bottom:max(420px,calc(env
  #miniMap{width:70px;height:70px;top:214px}
 }
 @media(max-width:370px){.village-builds .build b{font-size:8px}#buildpanel{width:98vw}.village-builds{gap:3px}}
+
+
+/* GEORGIA Alpha 0.8 — Siege & Allies */
+#missionPanel{position:fixed;top:199px;left:50%;transform:translateX(-50%);z-index:3;
+ width:min(340px,79vw);color:#f5eac6;border-radius:11px;padding:7px 9px;
+ background:#173b32d9;border:1px solid #dabf8261;box-shadow:0 4px 11px #102a2075;
+ pointer-events:none}
+.mission-top{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:10px}
+.mission-top span{color:#f5d686;font-size:9px}
+.mission-line{font-size:10px;color:#d5ecd7;margin-top:4px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#miniMap{top:287px;width:89px;height:89px}
+#toast{top:255px}
+#eventBadge{top:176px}
+#buildpanel{bottom:max(238px,calc(env(safe-area-inset-bottom) + 214px));}
+#actions{gap:4px}
+#actions #cryBtn{width:63px;height:63px;font-size:22px;border-color:#b7e4c8;
+ background:linear-gradient(140deg,#5f7c65,#386c55)}
+#cryBtn:disabled{opacity:.56;filter:grayscale(.5)}
+.castle-upgrade{margin-top:6px;padding:7px 9px;border-radius:9px;width:100%;
+ background:linear-gradient(95deg,#315344,#32504f);color:#f3e7b8;
+ border:1px solid #dec78b70;display:flex;align-items:center;justify-content:space-between;
+ font-weight:900;font-size:11px}
+.castle-upgrade small{font-size:10px;color:#f6dc99}
+.castle-upgrade:disabled{opacity:.48}
+.army-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.army-grid .build{min-width:0;padding:10px 2px}
+.army-grid .build b{font-size:10px}
+.army-grid .build small{font-size:9px}
+#armyBuilds .recruit-btn{font-size:11px}
+#guardCount{font-variant-numeric:tabular-nums}
+@media(max-width:780px){
+ #missionPanel{top:195px;width:min(324px,77vw);left:48%;font-size:9px}
+ #missionPanel .mission-line{font-size:9px}
+ #miniMap{top:295px;width:75px;height:75px}
+ #toast{top:255px}
+ #eventBadge{top:177px}
+ #buildpanel{bottom:max(224px,calc(env(safe-area-inset-bottom) + 203px))}
+ #actions #cryBtn{height:54px;width:54px;font-size:18px}
+ #actions #volleyBtn{height:54px;width:54px;font-size:18px}
+ #actions #dashBtn,#actions #healBtn{height:54px;width:54px}
+ .castle-upgrade{font-size:10px;padding:6px}
+ .castle-upgrade small{font-size:9px}
+}
+@media(max-width:390px){
+ #resourceBar span{padding:5px 6px;font-size:9px}
+ #actions{gap:3px;right:3px}
+ #actions #cryBtn,#actions #volleyBtn,#actions #dashBtn,#actions #healBtn{height:49px;width:49px}
+ .army-grid .build b{font-size:9px}
+}
+
+/* 0.8 HUD pass: no overlapping pinned quest and wave banners */
+#eventBadge{top:245px;max-width:min(88vw,320px);text-overflow:ellipsis;overflow:hidden}
+#toast{top:275px}
+#miniMap{top:322px}
+#missionPanel{top:196px}
+#actions button small{font-size:9px;line-height:1.12}
+@media(max-width:780px){
+ #eventBadge{top:246px;font-size:9px}
+ #toast{top:274px}
+ #miniMap{top:317px;width:73px;height:73px}
+ #missionPanel{top:196px}
+ #actions button small{font-size:8px;line-height:1.08}
+}

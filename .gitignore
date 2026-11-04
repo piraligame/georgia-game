@@ -23,3 +23,6 @@ patch-alpha06-*.py
 alpha07-*.cjs
 alpha07-*.png
 patch-alpha07-*.py
+alpha08-*.cjs
+alpha08-*.png
+patch-alpha08-*.py
