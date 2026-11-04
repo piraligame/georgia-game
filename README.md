@@ -1,3 +1,13 @@
+# GEORGIA Alpha 1.10 — Icon Alignment & PIRALI-style Joystick
+- Centered the fortress battlements precisely above the Georgian flag in the app emblem.
+- Updated launcher icons, splash, Play Store graphics and web favicon.
+- Restored the floating PIRALI-style joystick across the lower half of the screen; upper half is excluded.
+- Removed the unnecessary left/right-hand control label from menu and pause.
+- Same release signing certificate, versionCode 5 and versionName 1.0.10.
+- Browser: https://piraligame.github.io/georgia-game/?v=1.10
+- Android files: https://github.com/piraligame/georgia-game/releases/tag/alpha-1.10
+
+---
 # GEORGIA — Alpha 1.09 Market Candidate (PIRALI Game)
 Player: https://piraligame.github.io/georgia-game/?v=1.09
 GitHub release: https://github.com/piraligame/georgia-game/releases/tag/alpha-1.09

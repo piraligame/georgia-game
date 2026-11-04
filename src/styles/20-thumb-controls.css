@@ -1,26 +1,26 @@
-/* Alpha 1.09 one-thumb controls: anchored thumbpad, no half-screen touch capture */
-#joystick{position:fixed!important;left:max(13px,env(safe-area-inset-left))!important;
-  right:auto!important;bottom:max(16px,env(safe-area-inset-bottom))!important;
-  top:auto!important;transform:none!important;opacity:.72!important;
-  width:110px!important;height:110px!important;pointer-events:none!important;
-  transition:opacity .12s, box-shadow .12s;z-index:4!important}
-#joystick.active{opacity:1!important;transform:none!important;
-  box-shadow:0 0 0 6px #c6e3ba32,inset 0 0 30px #071817af}
-body.joystick-right #joystick{left:auto!important;right:max(13px,env(safe-area-inset-right))!important}
-#stick{width:46px!important;height:46px!important;left:calc(50% - 23px)!important;
-  top:calc(50% - 23px)!important}
-#thumbDashBtn{position:fixed;left:max(37px,calc(env(safe-area-inset-left) + 24px));right:auto;
-  bottom:max(144px,calc(env(safe-area-inset-bottom) + 127px));
-  width:56px;height:56px;border:1px solid #fae3b4;border-radius:50%;
-  background:#8c533fe8;color:#ffe9b8;font-size:27px;font-weight:900;
-  box-shadow:0 6px 16px #0007;z-index:4;touch-action:manipulation}
-body.joystick-right #thumbDashBtn{
- left:auto;right:max(37px,calc(env(safe-area-inset-right) + 24px))}
-body.joystick-right #actions{right:auto!important;left:max(6px,env(safe-area-inset-left))!important}
-.control-hand-toggle{display:block;margin:10px auto;padding:9px 13px;min-height:36px;
-  border:1px solid #d6c390a0;border-radius:12px;background:#264741e9;color:#fbe8ad;
-  font-size:12px;font-weight:800;cursor:pointer}
-#pauseOverlay .control-hand-toggle{margin:10px auto 0}
+/* Alpha 1.10: original PIRALI-style floating joystick.
+   Lower 50% of the screen is a valid touch zone; the upper half is NOT. */
+#joystick{
+ position:fixed!important;left:0!important;top:0!important;
+ right:auto!important;bottom:auto!important;
+ transform:translate(-50%,-50%) scale(.92)!important;
+ width:110px!important;height:110px!important;
+ opacity:0!important;visibility:hidden!important;
+ pointer-events:none!important;z-index:4!important;
+ transition:opacity .08s,transform .08s!important
+}
+#joystick.active{
+ opacity:1!important;visibility:visible!important;
+ transform:translate(-50%,-50%) scale(1)!important
+}
+#stick{width:46px!important;height:46px!important;
+ left:calc(50% - 23px)!important;top:calc(50% - 23px)!important}
+#thumbDashBtn{
+ position:fixed;left:max(18px,env(safe-area-inset-left));bottom:max(14px,env(safe-area-inset-bottom));
+ width:50px;height:50px;border:1px solid #fae3b4;border-radius:50%;
+ background:#8c533fe8;color:#ffe9b8;font-size:24px;font-weight:900;
+ box-shadow:0 6px 16px #0007;z-index:4;touch-action:manipulation
+}
 body:has(#intro:not(.hidden)) #joystick,
 body:has(#intro:not(.hidden)) #thumbDashBtn,
 body:has(#over:not(.hidden)) #joystick,
@@ -28,8 +28,10 @@ body:has(#over:not(.hidden)) #thumbDashBtn,
 body:has(#pauseOverlay:not(.hidden)) #joystick,
 body:has(#pauseOverlay:not(.hidden)) #thumbDashBtn,
 body:has(#rewardOverlay:not(.hidden)) #joystick,
-body:has(#rewardOverlay:not(.hidden)) #thumbDashBtn{opacity:0!important;visibility:hidden!important}
-@media(max-width:390px){#joystick{width:100px!important;height:100px!important}
- #thumbDashBtn{bottom:max(130px,calc(env(safe-area-inset-bottom) + 113px));width:49px;height:49px}}
-
-
+body:has(#rewardOverlay:not(.hidden)) #thumbDashBtn{
+ opacity:0!important;visibility:hidden!important
+}
+@media(max-width:390px){
+ #joystick{width:104px!important;height:104px!important}
+ #thumbDashBtn{height:46px;width:46px}
+}

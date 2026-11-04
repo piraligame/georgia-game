@@ -1161,22 +1161,9 @@ const state={playing:false,dead:false,coins:185,wood:75,meteorCd:0,effects:[],sc
  // The former cylinder/sphere distant substitute was removed; no model popping.
  const consistentEnemySilhouettes=true;
 let facing=new THREE.Vector3(0,0,-1),movement=new THREE.Vector2(0,0),lastToast=0;
-const keys={};const joystick={x:0,y:0,pointer:null,cx:0,cy:0,side:'left',deadZone:.11};
-try{joystick.side=localStorage.getItem('georgia-control-hand-v1')==='right'?'right':'left'}catch{}
-function switchControlHand(){
-  releaseJoystick();
-  joystick.side=joystick.side==='left'?'right':'left';
-  try{localStorage.setItem('georgia-control-hand-v1',joystick.side)}catch{}
-  applyControlHand();
-}
-function applyControlHand(){
- document.body.classList.toggle('joystick-right',joystick.side==='right');
- const label=joystick.side==='right'?'✋ მარჯვენა ხელით':'✋ მარცხენა ხელით';
- for(const element of document.querySelectorAll('.control-hand-toggle')){
-   element.textContent=label;
-   element.setAttribute('aria-label',label);
- }
-}
+const keys={};
+const joystick={x:0,y:0,pointer:null,cx:0,cy:0,deadZone:.09};
+// PIRALI-style floating joystick: appears under the finger anywhere in the lower half.
 function releaseJoystick(){
  joystick.pointer=null;joystick.x=0;joystick.y=0;
  const base=$('joystick');
@@ -1184,28 +1171,18 @@ function releaseJoystick(){
  if($('stick'))$('stick').style.transform='translate(0px,0px)';
 }
 function joystickCenter(){
- const b=$('joystick').getBoundingClientRect();
- return {x:(b.left+b.right)/2,y:(b.top+b.bottom)/2,allowed:Math.min(b.width/2+14,72)};
+ const base=$('joystick');
+ const bounds=base.getBoundingClientRect();
+ return {x:joystick.cx||bounds.left+bounds.width/2,
+   y:joystick.cy||bounds.top+bounds.height/2,allowed:true};
 }
-function initHandControls(){
- const menu=$('intro');
- const launch=$('startBtn');
- const pause=$('pauseOverlay')?.querySelector('.pause-actions');
- for(const [host,before] of [[menu,launch],[pause,null]]){
-   if(!host)continue;
-   const button=document.createElement('button');
-   button.type='button';button.className='control-hand-toggle';
-   button.addEventListener('click',switchControlHand);
-   if(before)host.insertBefore(button,before);else host.append(button);
- }
+function initThumbDash(){
  const thumbDash=document.createElement('button');
- thumbDash.id='thumbDashBtn';
- thumbDash.type='button';
+ thumbDash.id='thumbDashBtn';thumbDash.type='button';
  thumbDash.textContent='⚡';
- thumbDash.setAttribute('aria-label','ცალი ხელით სწრაფი მოძრაობა');
+ thumbDash.setAttribute('aria-label','სწრაფი მოძრაობა');
  thumbDash.addEventListener('click',dash);
  document.body.append(thumbDash);
- applyControlHand();
 }
 
 function pauseForInterruption(){
@@ -3219,16 +3196,18 @@ function moveStick(ev){
  setStick(joystick.x,joystick.y);
 }
 renderer.domElement.style.touchAction='none';
-// Only the 108px thumb pad (plus a small tolerance) activates movement.
-// Tapping the battlefield, building sites and other buttons never creates a joystick.
+// PIRALI-style floating joystick. Any free touch on the bottom half of
+// the battlefield activates movement. Touches in the upper half never do.
+// Overlay buttons remain unaffected because this handler belongs to the canvas.
 renderer.domElement.addEventListener('pointerdown',ev=>{
  if(!state.playing||state.dead||state.paused||state.betweenWaves||
     ev.pointerType==='mouse'||joystick.pointer!==null)return;
  if(!$('intro').classList.contains('hidden')||!$('pauseOverlay').classList.contains('hidden'))return;
- const center=joystickCenter();
- if(Math.hypot(ev.clientX-center.x,ev.clientY-center.y)>center.allowed)return;
+ if(ev.clientY<innerHeight*.5)return;
  joystick.pointer=ev.pointerId;
- joystick.cx=center.x;joystick.cy=center.y;
+ joystick.cx=ev.clientX;joystick.cy=ev.clientY;
+ base.style.setProperty('left',joystick.cx+'px','important');
+ base.style.setProperty('top',joystick.cy+'px','important');
  base.classList.add('active');
  try{renderer.domElement.setPointerCapture(ev.pointerId)}catch{}
  moveStick(ev);
@@ -3242,7 +3221,7 @@ renderer.domElement.addEventListener('pointerup',releaseStick);
 renderer.domElement.addEventListener('pointercancel',releaseStick);
 window.addEventListener('pointerup',releaseStick);
 window.addEventListener('pointercancel',releaseStick);
-initHandControls();
+initThumbDash();
 
 $('musicToggle').onclick=()=>{audio.unlock();audio.toggleMusic();renderAudioControls()};
 $('sfxToggle').onclick=()=>{audio.unlock();audio.toggleSfx();renderAudioControls()};

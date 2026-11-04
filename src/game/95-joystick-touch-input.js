@@ -32,16 +32,18 @@ function moveStick(ev){
  setStick(joystick.x,joystick.y);
 }
 renderer.domElement.style.touchAction='none';
-// Only the 108px thumb pad (plus a small tolerance) activates movement.
-// Tapping the battlefield, building sites and other buttons never creates a joystick.
+// PIRALI-style floating joystick. Any free touch on the bottom half of
+// the battlefield activates movement. Touches in the upper half never do.
+// Overlay buttons remain unaffected because this handler belongs to the canvas.
 renderer.domElement.addEventListener('pointerdown',ev=>{
  if(!state.playing||state.dead||state.paused||state.betweenWaves||
     ev.pointerType==='mouse'||joystick.pointer!==null)return;
  if(!$('intro').classList.contains('hidden')||!$('pauseOverlay').classList.contains('hidden'))return;
- const center=joystickCenter();
- if(Math.hypot(ev.clientX-center.x,ev.clientY-center.y)>center.allowed)return;
+ if(ev.clientY<innerHeight*.5)return;
  joystick.pointer=ev.pointerId;
- joystick.cx=center.x;joystick.cy=center.y;
+ joystick.cx=ev.clientX;joystick.cy=ev.clientY;
+ base.style.setProperty('left',joystick.cx+'px','important');
+ base.style.setProperty('top',joystick.cy+'px','important');
  base.classList.add('active');
  try{renderer.domElement.setPointerCapture(ev.pointerId)}catch{}
  moveStick(ev);
@@ -55,7 +57,7 @@ renderer.domElement.addEventListener('pointerup',releaseStick);
 renderer.domElement.addEventListener('pointercancel',releaseStick);
 window.addEventListener('pointerup',releaseStick);
 window.addEventListener('pointercancel',releaseStick);
-initHandControls();
+initThumbDash();
 
 $('musicToggle').onclick=()=>{audio.unlock();audio.toggleMusic();renderAudioControls()};
 $('sfxToggle').onclick=()=>{audio.unlock();audio.toggleSfx();renderAudioControls()};

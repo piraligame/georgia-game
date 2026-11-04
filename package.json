@@ -1,9 +1,9 @@
 {
   "name": "georgia-game",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "private": true,
   "type": "module",
-  "description": "GEORGIA 1.09 Market Candidate: consistent soldier 3D models, optimized scenic batching, stronger siege combat, stable upgrade signing",
+  "description": "GEORGIA Alpha 1.10: aligned Georgian flag and centered castle battlement in app icon, stable Android update from 1.09",
   "scripts": {
     "start": "npx serve . -l 8080",
     "check": "python scripts/build_game.py && node --check main.js && node --check dev-main.js",
