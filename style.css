@@ -139,3 +139,58 @@
  #intro #bestRecord{font-size:11px}
 }
 #bestRecord{margin:7px auto 14px;font-size:12px;color:#ffdf9f;font-weight:800}
+
+
+/* GEORGIA Alpha 0.7: Kingdom Expansion */
+#resourceBar{position:fixed;top:91px;left:11px;z-index:4;display:flex;gap:6px}
+#resourceBar span{font-size:11px;font-weight:900;color:#ffe9a8;border:1px solid #e9db905c;background:#16392fdb;padding:5px 8px;border-radius:10px}
+#resourceBar b{font-variant-numeric:tabular-nums}
+#pauseBtn{position:fixed;right:12px;top:91px;z-index:4;border:1px solid #d2b9838c;
+ background:#203b35d9;color:#ffebae;border-radius:12px;width:35px;height:31px;font-size:22px;line-height:1}
+#miniMap{position:fixed;top:226px;right:9px;width:99px;height:99px;z-index:2;border-radius:14px;
+ border:1px solid #e8cf955b;box-shadow:0 5px 13px #0a26154b;background:#112927bd;pointer-events:none}
+.event-badge{position:fixed;left:50%;top:209px;transform:translateX(-50%);color:#ffe9af;
+ background:#4d2d2ad9;border:1px solid #e2a9807a;padding:5px 13px;border-radius:9px;z-index:3;font-size:11px;font-weight:900;white-space:nowrap}
+#toast{top:265px;max-width:min(73vw,285px)}
+.buildtabs{display:flex;gap:6px;margin-bottom:6px}
+.buildtabs button{flex:1;padding:7px 8px;font-weight:900;font-size:11px;border-radius:8px;
+ background:#293b32a5;border:1px solid #d9b47544;color:#d6e2ce}
+.buildtabs button.active{background:linear-gradient(#d6ba7b,#b18446);color:#243b2e;border-color:#f5e1aa}
+.village-builds{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+.village-builds .build{min-width:0;display:flex;padding:9px 2px;justify-content:center}
+.village-builds .build b{font-size:9px}
+.village-builds .build small{font-size:9px;white-space:nowrap}
+.recruit-btn{width:100%;border:1px solid #e7cb885c;background:linear-gradient(#426f58,#264e43);
+ border-radius:9px;margin-top:6px;padding:8px 10px;color:#faf1d2;font-size:11px;font-weight:900;display:flex;justify-content:space-between}
+.recruit-btn small{font-size:10px;color:#f5e09c}
+.recruit-btn:disabled{opacity:.46;filter:grayscale(.65)}
+#buildpanel{bottom:max(231px,calc(env(safe-area-inset-bottom) + 211px));width:min(440px,94vw)}
+.structure-panel{bottom:max(370px,calc(env(safe-area-inset-bottom) + 349px))}
+body:has(#villageBuilds:not(.hidden)) .structure-panel{bottom:max(420px,calc(env(safe-area-inset-bottom) + 398px))}
+#buildProgress{font-size:9px}
+.pause-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pause-actions button{padding:13px 10px;border-radius:12px;background:linear-gradient(#426957,#284a45);
+ border:1px solid #f3dca67a;color:#fff2cd;font-weight:900;font-size:13px}
+.pause-actions button:first-child{grid-column:span 2;background:linear-gradient(#dec891,#ac833e);color:#263626}
+.pause-note{display:block;color:#cddcc9;margin-top:16px;font-size:10px;line-height:1.6}
+.modal .primary.secondary{display:block;margin:14px auto 0;background:linear-gradient(#78b9a4,#418f75);box-shadow:0 5px 0 #205c4d;color:#fff}
+@media(max-width:780px){
+ #resourceBar{top:91px;left:10px}
+ #pauseBtn{top:92px;right:12px}
+ #miniMap{top:225px;width:82px;height:82px;right:7px}
+ .event-badge{top:206px;max-width:87vw;font-size:10px}
+ #toast{top:261px}
+ #buildpanel{bottom:max(229px,calc(env(safe-area-inset-bottom) + 210px));width:min(96vw,360px)}
+ .structure-panel{bottom:max(371px,calc(env(safe-area-inset-bottom) + 348px))}
+ body:has(#villageBuilds:not(.hidden)) .structure-panel{bottom:max(415px,calc(env(safe-area-inset-bottom) + 392px))}
+ .buildtabs button{padding:5px 7px}
+ .village-builds .build b{font-size:9px}
+ .village-builds .build small{font-size:8px}
+}
+@media(max-height:720px) and (max-width:780px){
+ #buildpanel{bottom:177px}
+ .structure-panel{bottom:300px}
+ body:has(#villageBuilds:not(.hidden)) .structure-panel{bottom:348px}
+ #miniMap{width:70px;height:70px;top:214px}
+}
+@media(max-width:370px){.village-builds .build b{font-size:8px}#buildpanel{width:98vw}.village-builds{gap:3px}}

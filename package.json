@@ -1,9 +1,9 @@
 ﻿{
     "name":  "georgia-game",
-    "version":  "0.6.0",
+    "version":  "0.7.0",
     "private":  true,
     "type":  "module",
-    "description":  "GEORGIA: 3D archery, villagers, wave perks and village development",
+    "description":  "GEORGIA Kingdom Expansion: economy, guards, siege events, minimap, save",
     "scripts":  {
                     "start":  "npx serve . -l 8080",
                     "check":  "node --check main.js"
