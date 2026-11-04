@@ -1,9 +1,9 @@
 ﻿{
     "name":  "georgia-game",
-    "version":  "0.5.0",
+    "version":  "0.6.0",
     "private":  true,
     "type":  "module",
-    "description":  "Georgia — mobile fortress defense with enhanced hero animation",
+    "description":  "GEORGIA: 3D archery, villagers, wave perks and village development",
     "scripts":  {
                     "start":  "npx serve . -l 8080",
                     "check":  "node --check main.js"

@@ -90,3 +90,52 @@
  #toast{top:clamp(168px,20vh,197px);font-size:11px;padding:7px 11px}
  #guide{opacity:.65}
 }
+
+
+/* GEORGIA Alpha 0.6 — defense goals, skill button, inter-wave choices */
+#questTracker{position:fixed;left:50%;top:176px;transform:translateX(-50%);border:1px solid #d8c99761;
+ background:#1d3c34d9;color:#e9dfb4;border-radius:10px;min-height:30px;display:flex;align-items:center;
+ gap:8px;padding:6px 12px;white-space:nowrap;z-index:2;font-size:10px;font-weight:800;
+ box-shadow:0 3px 12px #0005;pointer-events:none}
+#villagerCount{color:#ffe49a;font-size:11px}
+#actions{gap:6px}
+#actions #volleyBtn{background:linear-gradient(150deg,#327c68,#1b4d4d);width:66px;height:66px;font-size:23px;border-color:#b8e4bf}
+#volleyBtn:disabled{filter:grayscale(.55);opacity:.52}
+#volleyCd{font-variant-numeric:tabular-nums}
+.reward-overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+ background:#081912be;z-index:10;padding:16px;backdrop-filter:blur(6px)}
+.reward-card{width:min(94vw,560px);border-radius:24px;background:linear-gradient(155deg,#234d42f9,#132b30fc);
+ border:1px solid #f0d08daa;box-shadow:0 18px 60px #000c;padding:25px;text-align:center}
+.reward-kicker{font-size:12px;font-weight:900;color:#a9ecbc;letter-spacing:.08em}
+.reward-card h2{margin:11px 0;font-family:Georgia,serif;font-size:24px;color:#ffdc99}
+.reward-card p{font-size:12px;line-height:1.5;color:#d4e0d5;margin:9px 0 18px}
+.reward-options{display:flex;flex-direction:column;gap:9px}
+.reward-option{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px;
+ border-radius:13px;border:1px solid #e5c78370;background:linear-gradient(95deg,#426752,#265548);
+ text-align:left;box-shadow:0 3px 10px #0004;transition:transform .13s,filter .13s}
+.reward-option:active{transform:scale(.97);filter:brightness(1.12)}
+.reward-option strong{font-size:13px;color:#fff0c6}
+.reward-option span{font-size:11px;color:#d4e2d3}
+.reward-earned{margin-top:15px;color:#e4c987;font-size:11px;font-weight:800}
+#devPanel{top:218px}
+@media(max-width:780px){
+ #questTracker{top:169px;max-width:94vw;font-size:9px;padding:6px 9px}
+ #actions #volleyBtn{width:59px;height:59px;font-size:19px}
+ .reward-card{padding:19px 16px}
+ .reward-card h2{font-size:22px}
+ .reward-option{padding:12px 11px}
+ #devPanel{top:213px}
+}
+@media(max-width:380px){#actions #volleyBtn{width:54px;height:54px}#actions{right:6px;gap:4px}}
+
+
+/* Alpha 0.6 HUD fine tuning: objectives never sit behind toasts */
+#toast{top:218px}
+#devPanel{top:284px}
+@media(max-width:780px){
+ #toast{top:213px}
+ #devPanel{top:279px}
+ #guide{display:none}
+ #intro #bestRecord{font-size:11px}
+}
+#bestRecord{margin:7px auto 14px;font-size:12px;color:#ffdf9f;font-weight:800}
