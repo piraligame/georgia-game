@@ -1,5 +1,5 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js';
-import { createGameAudio } from './audio.js?v=0.4';
+import { createGameAudio } from './audio.js?v=1.11';
 
 // GEORGIA — playable 3D alpha. A separate project from PIRALI.
 const $ = id => document.getElementById(id);

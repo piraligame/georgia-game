@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "package": "com.piraligame.georgia",
+  "previousVersionCode": 5,
+  "versionCode": 6,
+  "versionName": "1.0.11",
+  "targetSdk": 36,
+  "sameReleaseCertificate": true,
+  "signerSHA256": "f5979b4ebbb6be7091465069cf8d9aa270a1c0b230013d0fb1f8a2d7a3488175",
+  "aabBytes": 3860692,
+  "apkBytes": 4028554,
+  "audioThrottlingIncluded": true
+}

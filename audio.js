@@ -7,12 +7,17 @@ export function createGameAudio(){
   let ctx=null,master=null,musicBus=null,sfxBus=null,noiseBuffer=null;
   let timer=null,step=0,nextNote=0,started=false,lastShot=-100;
   let waveFlavor=0,lastImpact=-100,lastDamage=-100;
+  // Android WebView may deliver many combat events in one render frame.
+  // Separate polyphony budgets and per-effect cooldowns keep the mixer bounded.
+  let activeMusicVoices=0,activeSfxVoices=0;
+  const effectCooldown={arrow:.105,impact:.115,coin:.09,build:.22,upgrade:.18,damage:.22,dash:.20,wave:.70,defeat:1.2};
+  const lastEffect=Object.create(null);
   const MIDI=n=>440*Math.pow(2,(n-69)/12);
   function create(){
     if(ctx)return;
     const Audio=window.AudioContext||window.webkitAudioContext;
     if(!Audio)return;
-    ctx=new Audio();
+    ctx=new Audio({latencyHint:'playback'});
     master=ctx.createGain();master.gain.value=.82;
     const limiter=ctx.createDynamicsCompressor();
     limiter.threshold.value=-16;limiter.ratio.value=3.2;limiter.attack.value=.004;limiter.release.value=.2;
@@ -34,18 +39,33 @@ export function createGameAudio(){
     g.connect(bus);return g;
   }
   function osc(type,hz,time,duration,volume,bus=musicBus,slide=null){
-    if(!ctx)return;
+    if(!ctx||ctx.state!=='running')return;
+    const fx=bus===sfxBus;
+    if(fx?activeSfxVoices>=14:activeMusicVoices>=24)return;
+    if(fx)activeSfxVoices++;else activeMusicVoices++;
     const tone=ctx.createOscillator();tone.type=type;tone.frequency.setValueAtTime(Math.max(25,hz),time);
     if(slide)tone.frequency.exponentialRampToValueAtTime(Math.max(25,slide),time+duration*.8);
     const amp=envelope(bus,time,duration,volume,Math.min(.06,duration*.12));
-    tone.connect(amp);tone.start(time);tone.stop(time+duration+.025);
+    tone.connect(amp);
+    tone.onended=()=>{
+      tone.disconnect();amp.disconnect();
+      if(fx)activeSfxVoices=Math.max(0,activeSfxVoices-1);
+      else activeMusicVoices=Math.max(0,activeMusicVoices-1);
+    };
+    tone.start(time);tone.stop(time+duration+.025);
   }
   function noise(time,duration,volume,cutoff=2200){
-    if(!ctx||!noiseBuffer)return;
+    if(!ctx||ctx.state!=='running'||!noiseBuffer||activeSfxVoices>=14)return;
+    activeSfxVoices++;
     const src=ctx.createBufferSource();src.buffer=noiseBuffer;
     const filter=ctx.createBiquadFilter();filter.type='lowpass';filter.frequency.value=cutoff;
     const amp=envelope(sfxBus,time,duration,volume,.005);
-    src.connect(filter);filter.connect(amp);src.start(time);src.stop(time+duration+.01);
+    src.connect(filter);filter.connect(amp);
+    src.onended=()=>{
+      src.disconnect();filter.disconnect();amp.disconnect();
+      activeSfxVoices=Math.max(0,activeSfxVoices-1);
+    };
+    src.start(time);src.stop(time+duration+.01);
   }
   function pluck(note,time,volume=.10){
     const hz=MIDI(note);
@@ -74,8 +94,10 @@ export function createGameAudio(){
   const beat=60/86/2;
   function schedule(){
     if(!ctx||ctx.state!=='running'||!prefs.music||!started)return;
+    // Skip late notes rather than scheduling an audible burst after a frame stall.
+    if(nextNote<ctx.currentTime-.20)nextNote=ctx.currentTime+.06;
     let n=0;
-    while(nextNote<ctx.currentTime+.40 && n++<14){
+    while(nextNote<ctx.currentTime+.28 && n++<8){
       const index=step%tune.length, chord=Math.floor(index/8)%chords.length;
       if(index%8===0)pad(chords[chord],nextNote,beat*8.4);
       if(tune[index]!=null)pluck(tune[index],nextNote,index%8===0?.12:.085);
@@ -86,7 +108,7 @@ export function createGameAudio(){
   }
   function startMusic(){
     if(!ctx||!prefs.music||timer)return;
-    nextNote=ctx.currentTime+.10;step=0;timer=setInterval(schedule,125);schedule();
+    nextNote=ctx.currentTime+.12;step=0;timer=setInterval(schedule,160);schedule();
   }
   function stopMusic(){if(timer){clearInterval(timer);timer=null}}
   async function unlock(){
@@ -99,7 +121,10 @@ export function createGameAudio(){
   }
   function play(kind,power=1){
     if(!ctx||ctx.state!=='running'||!prefs.sfx||document.hidden)return;
-    const t=ctx.currentTime+.001,p=Math.min(1.2,Math.max(.06,power));
+    const t=ctx.currentTime+.006,p=Math.min(1.2,Math.max(.06,power));
+    const prev=lastEffect[kind]??-100;
+    if(t-prev<(effectCooldown[kind]??.1))return;
+    lastEffect[kind]=t;
     switch(kind){
       case 'arrow':{
         if(t-lastShot<.072)return;lastShot=t;
